@@ -13,7 +13,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  MIGRATION_IMAGE_NAME: $(echo "${{ github.repository }}.migration" | tr '[:upper:]' '[:lower:]')
 
 jobs:
   build:
@@ -59,6 +58,8 @@ jobs:
 
       - name: Build and push database migration container image
         uses: docker/build-push-action@v6
+        env:
+          MIGRATION_IMAGE_NAME: $(echo "${{ github.repository }}.migration" | tr '[:upper:]' '[:lower:]')
         with:
           context: .
           file: ./Containerfile.migration
@@ -68,10 +69,10 @@ jobs:
             BUILD_DATE=${{ steps.meta.outputs.GitCommitDate }}
             SEMVER2=${{ steps.meta.outputs.SemVer2 }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.MIGRATION_IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.MIGRATION_IMAGE_NAME }}:${{ steps.meta.outputs.SemVer2 }}
-            ${{ env.REGISTRY }}/${{ env.MIGRATION_IMAGE_NAME }}:${{ steps.meta.outputs.MajorMinorVersion }}
-            ${{ env.REGISTRY }}/${{ env.MIGRATION_IMAGE_NAME }}:${{ steps.meta.outputs.Version }}
+            ${{ env.REGISTRY format('/{0}.migration:latest', toLower(github.repository)) }}:latest
+            ${{ env.REGISTRY format('/{0}.migration:latest', toLower(github.repository)) }}:${{ steps.meta.outputs.SemVer2 }}
+            ${{ env.REGISTRY format('/{0}.migration:latest', toLower(github.repository)) }}:${{ steps.meta.outputs.MajorMinorVersion }}
+            ${{ env.REGISTRY format('/{0}.migration:latest', toLower(github.repository)) }}:${{ steps.meta.outputs.Version }}
 
       # NO helm in gitea action runner
       # - name: Push Helm chart
