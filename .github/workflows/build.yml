@@ -80,11 +80,10 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.migr.outputs.migration_image_name }}:${{ steps.meta.outputs.MajorMinorVersion }}
             ${{ env.REGISTRY }}/${{ steps.migr.outputs.migration_image_name }}:${{ steps.meta.outputs.Version }}
 
-      # NO helm in gitea action runner
-      # - name: Push Helm chart
-      #   env:
-      #     VERSION: ${{ steps.meta.outputs.SemVer2 }}
-      #   run: |
-      #     REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-      #     helm package ./deploy --version "$VERSION" --app-version "$VERSION"
-      #     helm push calendare-server-${VERSION}.tgz oci://registry.slgm.ch/helm
+      - name: Push Helm chart
+        env:
+          VERSION: ${{ steps.meta.outputs.SemVer2 }}
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          helm package ./deploy --version "$VERSION" --app-version "$VERSION"
+          helm push calendare-server-${VERSION}.tgz oci://${{ env.REGISTRY }}/${{ REPO_LOWER }}
