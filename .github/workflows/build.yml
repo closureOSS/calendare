@@ -13,7 +13,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  MIGRATION_IMAGE_NAME: "calendare.migration"
 
 jobs:
   build:
@@ -68,10 +67,10 @@ jobs:
             BUILD_DATE=${{ steps.meta.outputs.GitCommitDate }}
             SEMVER2=${{ steps.meta.outputs.SemVer2 }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.MIGRATION_IMAGE_NAME}}:latest
-            ${{ env.REGISTRY }}/${{ env.MIGRATION_IMAGE_NAME}}:${{ steps.meta.outputs.SemVer2 }}
-            ${{ env.REGISTRY }}/${{ env.MIGRATION_IMAGE_NAME}}:${{ steps.meta.outputs.MajorMinorVersion }}
-            ${{ env.REGISTRY }}/${{ env.MIGRATION_IMAGE_NAME}}:${{ steps.meta.outputs.Version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}.migration:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}.migration:${{ steps.meta.outputs.SemVer2 }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}.migration:${{ steps.meta.outputs.MajorMinorVersion }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}.migration:${{ steps.meta.outputs.Version }}
 
       # NO helm in gitea action runner
       # - name: Push Helm chart
