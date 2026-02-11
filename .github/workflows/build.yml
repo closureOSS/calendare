@@ -81,7 +81,8 @@ jobs:
       - name: Push Helm chart
         env:
           VERSION: ${{ steps.meta.outputs.SemVer2 }}
+          REPO_LOWER: ${{ toLower(github.repository) }}
         run: |
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          # REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           helm package ./deploy --version "$VERSION" --app-version "$VERSION"
-          helm push calendare-server-${VERSION}.tgz oci://${{ env.REGISTRY }}/$REPO_LOWER
+          helm push calendare-${VERSION}.tgz oci://${{ env.REGISTRY }}/$REPO_LOWER
