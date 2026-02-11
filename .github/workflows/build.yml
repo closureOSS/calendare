@@ -64,8 +64,6 @@ jobs:
 
       - name: Build and push database migration container image
         uses: docker/build-push-action@v6
-        env:
-          MIGRATION_IMAGE_NAME: $(echo "${{ github.repository }}.migration" | lower)
         with:
           context: .
           file: ./Containerfile.migration
@@ -86,4 +84,4 @@ jobs:
         run: |
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           helm package ./deploy --version "$VERSION" --app-version "$VERSION"
-          helm push calendare-server-${VERSION}.tgz oci://${{ env.REGISTRY }}/${{ REPO_LOWER }}
+          helm push calendare-server-${VERSION}.tgz oci://${{ env.REGISTRY }}/$REPO_LOWER
