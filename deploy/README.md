@@ -2,7 +2,7 @@
 
 
 
-![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.6.0](https://img.shields.io/badge/AppVersion-0.6.0-informational?style=flat-square)
+![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.6.0](https://img.shields.io/badge/AppVersion-0.6.0-informational?style=flat-square) 
 
 [Calendare - A Caldav/Carddav server](https://github.com/closureOSS/calendare)
 
@@ -171,7 +171,7 @@ If a client is not configured in `calendare.features` the in-built settings are 
 | httpRoute.parentRefs | list | {} | Which Gateways this Route is attached to. |
 | httpRoute.rules | list | {} | List of rules and filters applied. |
 | image.pullPolicy | string | `"IfNotPresent"` | This sets the pull policy for images. |
-| image.repository | string | `"registry.slgm.ch/library/calendare.server"` |  |
+| image.repository | string | `"ghcr.io/closureoss/calendare/calendare.server"` |  |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |

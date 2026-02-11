@@ -40,7 +40,7 @@ jobs:
           echo "repository_lc=$REPOSITORY_LC" >> $GITHUB_OUTPUT
           REPOSITORY_OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "repository_owner_lc=$REPOSITORY_OWNER_LC" >> $GITHUB_OUTPUT
-          SERVER_IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          SERVER_IMAGE_NAME=$(echo "${{ github.repository }}.server" | tr '[:upper:]' '[:lower:]')
           echo "server_image_name=$SERVER_IMAGE_NAME" >> $GITHUB_OUTPUT
           MIGRATION_IMAGE_NAME=$(echo "${{ github.repository }}.migration" | tr '[:upper:]' '[:lower:]')
           echo "migration_image_name=$MIGRATION_IMAGE_NAME" >> $GITHUB_OUTPUT

@@ -60,7 +60,7 @@ The server automatically handles redirects for `/.well-known/caldav` and `/.well
 
 ## Kubernetes - Helm chart
 
-A helm chart is provided at **(TODO: add helm chart repository)** or within the `deploy` subdirectory of the source repository. For a full list of configuration options, please refer to the [**README**](../deploy/README.md) included with the chart.
+A helm chart is provided at oci://ghcr.io/closureoss/charts/calendare or within the `deploy` subdirectory of the source repository. For a full list of configuration options, please refer to the [**README**](../deploy/README.md) included with the chart.
 
 ### Network & Security Considerations
 
