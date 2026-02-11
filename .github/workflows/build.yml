@@ -12,6 +12,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  CHART_REPO: charts
 
 jobs:
   build:
@@ -36,13 +37,13 @@ jobs:
         id: migr
         run: |
           REPOSITORY_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          SERVER_IMAGE_NAME=$(echo "${{ github.repository }}.server" | tr '[:upper:]' '[:lower:]')
-          MIGRATION_IMAGE_NAME=$(echo "${{ github.repository }}.migration" | tr '[:upper:]' '[:lower:]')
-          CHART_REPO_NAME=$(echo "${{ github.repository }}.chart" | tr '[:upper:]' '[:lower:]')
           echo "repository_lc=$REPOSITORY_LC" >> $GITHUB_OUTPUT
+          REPOSITORY_OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "repository_owner_lc=$REPOSITORY_OWNER" >> $GITHUB_OUTPUT
+          SERVER_IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "server_image_name=$SERVER_IMAGE_NAME" >> $GITHUB_OUTPUT
+          MIGRATION_IMAGE_NAME=$(echo "${{ github.repository }}.migration" | tr '[:upper:]' '[:lower:]')
           echo "migration_image_name=$MIGRATION_IMAGE_NAME" >> $GITHUB_OUTPUT
-          echo "chart_repo_name=$CHART_REPO_NAME" >> $GITHUB_OUTPUT
 
       - name: Log in to registry
         uses: docker/login-action@v3
@@ -88,4 +89,4 @@ jobs:
           VERSION: ${{ steps.meta.outputs.SemVer2 }}
         run: |
           helm package ./deploy --version "$VERSION" --app-version "$VERSION"
-          helm push calendare-${VERSION}.tgz oci://${{ env.REGISTRY }}/${{ steps.migr.outputs.chart_repo_name }}
+          helm push calendare-${VERSION}.tgz oci://${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_owner_lc }}/${{ env.CHART_REPO }}
