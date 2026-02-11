@@ -1,0 +1,113 @@
+{{- $fullname := include "calendare.fullname" . -}}
+{{- $shortname := include "calendare.name" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "calendare.fullname" . }}
+  labels:
+    {{- include "calendare.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "calendare.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/appsettings: {{ include (print $.Template.BasePath "/config.appsettings.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "calendare.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "calendare.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.migration.enabled }}
+      initContainers:
+        - name: wait-for-migration
+          image: registry.k8s.io/kubectl:v1.35.0
+          args:
+            - wait
+            - --for=condition=complete
+            - job/{{ include "calendare.fullname" . }}-migration-{{ .Release.Revision }}
+            - --timeout=300s
+      {{- end}}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: metric
+              containerPort: {{ .Values.metric.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          env:
+            - name: Calendare__PathBase
+              value: {{ .Values.calendare.pathBase | default "/caldav.php" | quote }}
+            {{- if .Values.calendare.enableTestMode }}
+            - name: Calendare__IsTestMode
+              value: {{ .Values.calendare.enableTestMode | default false | quote }}
+            {{- end }}
+            {{- if .Values.calendare.recorder.enabled }}
+            - name: Recorder__Mode
+              value: {{ .Values.calendare.recorder.mode | default "None" | quote }}
+            - name: Recorder__Directory
+              value: {{ .Values.calendare.recorder.path | default "/tmp" | quote }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.calendare.existingDbmsSecret | default (printf "%s-cluster-app" $shortname) }}
+              prefix: Postgresql__
+            - secretRef:
+                name: {{ .Values.webpush.existingSecret | default (printf "%s-vapid" $fullname) }}
+              prefix: WebPush__Vapid__
+            - secretRef:
+                name: {{ .Values.calendare.existingAdminSecret | default (printf "%s-admin" $fullname) }}
+              prefix: Calendare__Administrator__
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: appsettings
+              mountPath: /app/appsettings.Production.json
+              subPath: appsettings.Production.json
+          {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: appsettings
+          configMap:
+            name: {{ $fullname }}-appsettings
+      {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

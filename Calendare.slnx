@@ -1,0 +1,8 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="Data/Data.csproj" />
+  <Project Path="Server/Server.csproj" />
+</Solution>

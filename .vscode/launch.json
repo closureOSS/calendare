@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Server",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "console": "internalConsole",
+            "cwd": "${workspaceFolder}/Server",
+            "program": "${workspaceFolder}/artifacts/bin/Server/debug/ClosureOSS.Calendare.Server.dll",
+            "args": [],
+            "env": {
+                "DOTNET_ENVIRONMENT": "Development",
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "logging": {
+                "programOutput": true,
+                "moduleLoad": false,
+                "threadExit": false,
+                "processExit": true,
+                "exceptions": false,
+                "browserStdOut": false,
+                "diagnosticsLog": {
+                    "protocolMessages": false
+                }
+            }
+        }
+    ]
+}

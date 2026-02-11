@@ -1,0 +1,19 @@
+apiVersion: v2
+name: calendare
+description: Calendare - A Caldav/Carddav server
+home: https://github.com/closureOSS/calendare
+keywords:
+  - caldav
+  - carddav
+  - calendar
+  - server
+# icon:
+sources:
+  - https://github.com/closureOSS/calendare/src/deploy
+  - https://github.com/closureOSS/calendare/src/Server
+
+type: application
+
+version: 0.6.0
+
+appVersion: "0.6.0"

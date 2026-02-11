@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "calendare.fullname" . }}-appsettings
+  labels:
+    {{- include "calendare.labels" . | nindent 4 }}
+data:
+  appsettings.Production.json: |
+    {
+      "Serilog": {
+        "MinimumLevel": {
+          "Override": {
+            "Microsoft": "Information",
+            "System": "Warning",
+            "XX-System": "Information",
+            "XX-Microsoft.EntityFrameworkCore.Database.Command": "Information",
+            "Microsoft.EntityFrameworkCore.Database.Command": "Warning"
+          }
+        },
+        "Using": ["Serilog.Expressions"],
+        "Filter": [
+          {
+            "Name": "ByExcluding",
+            "Args": {
+              "expression": "RequestPath like '/health%'"
+            }
+          }
+        ]
+      },
+{{- if .Values.jwtBearer.enabled }}
+      "JwtBearer": {{- with .Values.jwtBearer -}}{{- toPrettyJson . | nindent 6 }}{{- end }},
+{{- end }}
+      "Calendare": {
+{{- $appsetting := .Values.calendare.features }}
+{{- if $appsetting }}
+        "Features": {{ $appsetting | toJson | indent 2 }}
+{{- end }}
+      }
+    }

@@ -1,0 +1,18 @@
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-azurelinux3.0-distroless-amd64
+
+ARG BUILD_DATE
+ARG SEMVER2
+
+LABEL org.opencontainers.image.authors="rob@slgm.ch" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.version="${SEMVER2}"
+
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+WORKDIR /app
+
+COPY /artifacts/efbundle .
+
+USER app
+
+ENTRYPOINT ["./efbundle"]

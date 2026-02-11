@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "calendare.fullname" . }}
+  labels:
+    {{- include "calendare.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.metric.port }}
+      targetPort: metric
+      protocol: TCP
+      name: metric
+  selector:
+    {{- include "calendare.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,167 @@
+# Helm chart for the Calendare Server <!-- omit in toc -->
+
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+[{{ template "chart.description" . }}]({{ template "chart.homepage" . }})
+
+> [!IMPORTANT]
+> Please read the [server installation guide](../doc/INSTALL.md) first.
+
+# Calendare Configuration
+
+## Initial Configuration
+
+| Key                                 | Type   | Default                | Description                    |
+| ----------------------------------- | ------ | ---------------------- | ------------------------------ |
+| calendare.pathBase                  | string | `/caldav.php`          | See installation guide         |
+| calendare.administrator             | object | `{}`                   | ...                            |
+| calendare.administrator.password    | string | `<random>`             | Initial administrator password |
+| calendare.administrator.username    | string | `admin`                | Username                       |
+| calendare.administrator.email       | string | `calendare@closure.ch` | Email of administrator         |
+| calendare.administrator.displayName | string | `Administrator`        | Visible name                   |
+
+The settings for the administrator are only used during the first initial start of the server as long no administrator account exists in the database.
+
+If no initial password is provided the helm chart generates a password. The **initial** password is stored in the secret `[[deployment-name]]-admin`, e.g. `calendare-admin`
+
+> [!NOTE]
+> Change administrator settings later in the admin UI. The `username` is immutable. Changes to the admin password aren't reflected in the secret.
+
+## PostgreSQL Database
+
+| Key                          | Type   | Default | Description             |
+| ---------------------------- | ------ | ------- | ----------------------- |
+| calendare.existingDbmsSecret | string |         | Name of existing secret |
+
+The connection information for the PostgreSQL database need to be provided in a Kubernetes secret. Following keys are supported:
+
+| Key              | Description                            |
+| ---------------- | -------------------------------------- |
+| ConnectionString | Connection string in NET10 convention  |
+| User             | Username. Defaults to app              |
+| Password         | Password                               |
+| Host             | Host. Defaults to calendare-cluster-rw |
+| Port             | Port e.g. 5432                         |
+| Dbname           | Name of database. Defaults to app      |
+
+The table represents the priority (User overwrites the corresponding value in ConnectionString).
+The default ConnectionString is `Host=calendare-cluster-rw;Username=app;Database=app;`.
+
+> [!TIP]
+> The secret created by [CloudNativePG](https://cloudnative-pg.io/) for a PostgreSQL in the same namespace as the application fullfils the criteria.
+
+## OIDC Provider Configuration
+
+While the **Calendare Server** does not use JWT (JSON Web Tokens) or OIDC for authenticating standard calendar and contact clients (which typically use Basic or Digest authentication), an OIDC provider is a mandatory infrastructure requirement for the User Self-Administration UI.
+
+The administration interface relies on OIDC to provide a secure, modern login experience for users managing their accounts, passwords, and service settings.
+
+| Key                 | Type   | Default        | Description                                               |
+| ------------------- | ------ | -------------- | --------------------------------------------------------- |
+| jwtBearer           | {}     |                | OIDC provider configuration                               |
+| jwtBearer.enabled   | bool   | `false`        | OIDC provider configuration                               |
+| jwtBearer.provider  | string | `Default`      | Provider, use one of Default, PocketId, Keycloak, Zitadel |
+| jwtBearer.authority | uri    | ``             | URI of OIDC provider, e.g. `https://auth.example.com`     |
+| jwtBearer.audience  | string | `calendare.ui` | Audience                                                  |
+
+## Webpush for Notifications Configuration
+
+The Calendare Server supports the [specification for WebDAV Push](https://github.com/bitfireAT/webdav-push), for [HTTP Push](https://datatracker.ietf.org/doc/html/rfc8030), [Message encryption for Web Push](https://datatracker.ietf.org/doc/html/rfc8291), [VAPID keys](https://datatracker.ietf.org/doc/html/rfc8292).
+
+To enable the Web push VAPID keys must be supplied. Either with an existing secret
+
+| Key                    | Type | Default | Description                                                                        |
+| ---------------------- | ---- | ------- | ---------------------------------------------------------------------------------- |
+| webpush.existingSecret | name | ``      | Name of existing secret which contains two keys named `PUBLICKEY` and `PRIVATEKEY` |
+
+Or include the VAPID keys directly in `values.yaml` with:
+
+| Key                   | Type   | Default | Description       |
+| --------------------- | ------ | ------- | ----------------- |
+| webpush.vapid         | object | `{}`    |                   |
+| webpush.vapid.public  | name   | ``      | Public VAPID key  |
+| webpush.vapid.private | name   | ``      | Private VAPID key |
+
+## Calendare User Defaults Configuration
+
+| Key                                   | Type   | Default         | Description                              |
+| ------------------------------------- | ------ | --------------- | ---------------------------------------- |
+| calendare.userDefaults                | object | `{}`            | ...                                      |
+| calendare.userDefaults.Locale         | string | `de-CH`         | Users locale setting                     |
+| calendare.userDefaults.DateFormatType | string | `E`             | Default date format (currently not used) |
+| calendare.userDefaults.TzId           | string | `Europe/Zurich` | Default timezone                         |
+
+These defaults are only used if no value is supplied by the user during account creation. The user can change these values later.
+
+## Calendar Clients Feature Configuration
+
+| Key                | Type  | Default | Description |
+| ------------------ | ----- | ------- | ----------- |
+| calendare.features | array | `[]`    | ...         |
+
+A list of feature toogles for calendar clients can be supplied. A calendare client is identified by
+
+| Label         | Description                                         |
+| ------------- | --------------------------------------------------- |
+| Default       | Any client, features always applied                 |
+| Thunderbird   | Mozilla Thunderbird calendar client                 |
+| MacOSCalendar | Apple MacOS calendar client                         |
+| EMClient      | eM Email Client                                     |
+| DAVx5         | Android DAVx5 CalDAV / CardDAV / WebDAV for Android |
+| NotDetected   | Unknown client                                      |
+
+each client can have a list of enabled features and a second list of disabled features. These features are
+
+| Label                           | Description                                                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| CalendarProxy                   | Calendar proxy (Apple CalendarServer extension)                                                                             |
+| VirtualProxyMembers             | Adds members to the proxy group read or read/write based on granted privileges.                                             |
+| ResourceSharing                 | Resource sharing (Apple extension)                                                                                          |
+| AutoScheduling                  | Server scheduling (**Do not enable**, still under development)                                                              |
+| WebdavPush                      | WebDAV Push                                                                                                                 |
+| VCard4                          | Allow vCard 4 formatted addresses                                                                                           |
+| SyncCollectionSuppressTokenGone | Ignore invalid sync tokens and return all changes (similar to empty token), doesn't send a GONE status as would be required |
+
+The recommended setup for `calendare.feature` is
+
+```yaml
+- ClientType: Default
+    Enable:
+    - CalendarProxy
+    # - AutoScheduling
+    - SyncCollectionSuppressTokenGone
+- ClientType: MacOSCalendar
+    Enable:
+    - ResourceSharing
+    - VirtualProxyMembers
+```
+
+Disabled features have a higher priority than enabled features.
+
+If a client is not configured in `calendare.features` the in-built settings are applied, which are taken from the `appsettings.json` file of the server.
+
+## Testing and Debugging Configuration
+
+| Key                        | Type   | Default | Description                                                                                                                                |
+| -------------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| calendare.recorder         | object |         | Record all transactions. The recording contains private information and should not be enabled on a production system without user consent. |
+| calendare.recorder.enabled | bool   | false   | Disabled by default (records to the database)                                                                                              |
+| calendare.enableTestMode   | bool   | `false` | Test mode allows the completely clear the database and other unsafe API calls. **Never** enable on a production system                     |
+
+> [!WARNING]
+> The test mode is **only** for integration testing on a dedicated database. With enabled test mode the integration tests can and will delete the whole content without any further confirmation.
+
+> [!NOTE]
+> The recorder can be used to debug the communication with client applications. The whole content of the request and response is stored in a database table. The recorder is not dependent on the test mode.
+
+# Full Configuration
+
+{{ template "chart.valuesSection" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "helm-docs.versionFooter" . }}
