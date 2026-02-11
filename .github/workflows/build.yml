@@ -82,6 +82,7 @@ jobs:
         env:
           VERSION: ${{ steps.meta.outputs.SemVer2 }}
         run: |
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          # REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER="${github.repository,,}"
           helm package ./deploy --version "$VERSION" --app-version "$VERSION"
           helm push calendare-${VERSION}.tgz oci://${{ env.REGISTRY }}/$REPO_LOWER
