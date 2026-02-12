@@ -52,6 +52,7 @@ podLabels: {}
 podSecurityContext: {}
   # fsGroup: 2000
 
+# -- security context. Rootless operation is supported and recommended.
 securityContext: {}
   # capabilities:
   #   drop:

@@ -111,7 +111,7 @@ These defaults are only used if no value is supplied by the user during account 
 | ------------------ | ----- | ------- | ----------- |
 | calendare.features | array | `[]`    | ...         |
 
-A list of feature toogles for calendar clients can be supplied. A calendare client is identified by
+A list of feature toogles for calendar clients can optionally be supplied. A calendare client is identified by
 
 | Label         | Description                                         |
 | ------------- | --------------------------------------------------- |
@@ -134,18 +134,17 @@ each client can have a list of enabled features and a second list of disabled fe
 | VCard4                          | Allow vCard 4 formatted addresses                                                                                           |
 | SyncCollectionSuppressTokenGone | Ignore invalid sync tokens and return all changes (similar to empty token), doesn't send a GONE status as would be required |
 
-The recommended setup for `calendare.feature` is
+An example setup to enable experimental features for all client types (e.g. for a development instance) and disable VCard4 for EMClient is
 
 ```yaml
 - ClientType: Default
     Enable:
     - CalendarProxy
-    # - AutoScheduling
+    - AutoScheduling
     - SyncCollectionSuppressTokenGone
-- ClientType: MacOSCalendar
-    Enable:
-    - ResourceSharing
-    - VirtualProxyMembers
+- ClientType: EMClient
+    Disable:
+    - VCard4
 ```
 
 Disabled features have a higher priority than enabled features.
@@ -207,7 +206,7 @@ If a client is not configured in `calendare.features` the in-built settings are 
 | readinessProbe.httpGet.port | string | `"metric"` |  |
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
-| securityContext | object | `{}` |  |
+| securityContext | object | `{}` | security context. Rootless operation is supported and recommended. |
 | service.port | int | `8080` |  |
 | service.type | string | `"ClusterIP"` |  |
 | serviceAccount.annotations | object | `{}` |  |
