@@ -72,6 +72,9 @@ jobs:
 
       - name: Build and push database migration container image
         uses: docker/build-push-action@v6
+        env:
+          REPOSITRY_LC: ${{ steps.migr.outputs.repository_lc }}
+          IMAGE_NAME: ${{ steps.migr.outputs.migration_image_name }}
         with:
           context: .
           file: ./Containerfile.migration
