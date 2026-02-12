@@ -72,9 +72,6 @@ jobs:
 
       - name: Build and push database migration container image
         uses: docker/build-push-action@v6
-        env:
-          REPOSITORY_LC: ${{ steps.migr.outputs.repository_lc }}
-          IMAGE_NAME: "calendare-migration"
         with:
           context: .
           file: ./Containerfile.migration
