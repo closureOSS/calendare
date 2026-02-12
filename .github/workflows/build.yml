@@ -89,7 +89,7 @@ jobs:
       - name: Push Helm chart
         env:
           VERSION: ${{ steps.meta.outputs.SemVer2 }}
-          REPOSITORY_OWNER_LC: ${{ steps.migr.outputs.repository_lc }}
+          REPOSITORY_OWNER_LC: ${{ steps.migr.outputs.repository_owner_lc }}
         run: |
           helm package ./deploy --version "$VERSION" --app-version "$VERSION"
           helm push calendare-${VERSION}.tgz oci://${{ env.REGISTRY }}/${REPOSITORY_OWNER_LC}/${{ env.CHART_REPO }}
