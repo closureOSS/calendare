@@ -57,7 +57,7 @@ jobs:
 
       - name: Publish server container to registry
         env:
-          REPOSITRY_LC: ${{ steps.migr.outputs.repository_lc }}
+          REPOSITORY_LC: ${{ steps.migr.outputs.repository_lc }}
           IMAGE_NAME: ${{ steps.migr.outputs.server_image_name }}
         run: |
           dotnet publish --os linux --arch x64 /t:PublishContainer \
@@ -77,7 +77,7 @@ jobs:
       - name: Build and push database migration container image
         uses: docker/build-push-action@v6
         env:
-          REPOSITRY_LC: ${{ steps.migr.outputs.repository_lc }}
+          REPOSITORY_LC: ${{ steps.migr.outputs.repository_lc }}
           IMAGE_NAME: ${{ steps.migr.outputs.migration_image_name }}
         with:
           context: .
