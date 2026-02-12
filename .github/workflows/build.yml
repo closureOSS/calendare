@@ -12,7 +12,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
   CHART_REPO: charts
 
 jobs:
@@ -44,9 +43,9 @@ jobs:
           echo "repository_lc=$REPOSITORY_LC" >> $GITHUB_OUTPUT
           REPOSITORY_OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "repository_owner_lc=$REPOSITORY_OWNER_LC" >> $GITHUB_OUTPUT
-          SERVER_IMAGE_NAME=$(echo "${{ github.repository }}.server" | tr '[:upper:]' '[:lower:]')
+          SERVER_IMAGE_NAME=$(echo "${{ github.repository }}-server" | tr '[:upper:]' '[:lower:]')
           echo "server_image_name=$SERVER_IMAGE_NAME" >> $GITHUB_OUTPUT
-          MIGRATION_IMAGE_NAME=$(echo "${{ github.repository }}.migration" | tr '[:upper:]' '[:lower:]')
+          MIGRATION_IMAGE_NAME=$(echo "${{ github.repository }}-migration" | tr '[:upper:]' '[:lower:]')
           echo "migration_image_name=$MIGRATION_IMAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Log in to registry
@@ -57,11 +56,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish server container to registry
+        env:
+          REPOSITRY_LC: ${{ steps.migr.outputs.repository_lc }}
+          IMAGE_NAME: ${{ steps.migr.outputs.server_image_name }}
         run: |
           dotnet publish --os linux --arch x64 /t:PublishContainer \
             /p:ContainerImageTags='"${{ steps.meta.outputs.SemVer2 }};${{ steps.meta.outputs.MajorMinorVersion }};${{ steps.meta.outputs.Version }};latest"' \
             -p ContainerRegistry=${{ env.REGISTRY }} \
-            -p ContainerRepository=${{ steps.migr.outputs.server_image_name }}
+            -p ContainerRepository=${REPOSITORY_LC}/${IMAGE_NAME}
 
       - name: Build database migration
         working-directory: Data
@@ -74,6 +76,9 @@ jobs:
 
       - name: Build and push database migration container image
         uses: docker/build-push-action@v6
+        env:
+          REPOSITRY_LC: ${{ steps.migr.outputs.repository_lc }}
+          IMAGE_NAME: ${{ steps.migr.outputs.migration_image_name }}
         with:
           context: .
           file: ./Containerfile.migration
@@ -83,10 +88,10 @@ jobs:
             BUILD_DATE=${{ steps.meta.outputs.GitCommitDate }}
             SEMVER2=${{ steps.meta.outputs.SemVer2 }}
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.migr.outputs.migration_image_name }}:latest
-            ${{ env.REGISTRY }}/${{ steps.migr.outputs.migration_image_name }}:${{ steps.meta.outputs.SemVer2 }}
-            ${{ env.REGISTRY }}/${{ steps.migr.outputs.migration_image_name }}:${{ steps.meta.outputs.MajorMinorVersion }}
-            ${{ env.REGISTRY }}/${{ steps.migr.outputs.migration_image_name }}:${{ steps.meta.outputs.Version }}
+            ${{ env.REGISTRY }}/${REPOSITORY_LC}/${IMAGE_NAME}:latest
+            ${{ env.REGISTRY }}/${REPOSITORY_LC}/${IMAGE_NAME}:${{ steps.meta.outputs.SemVer2 }}
+            ${{ env.REGISTRY }}/${REPOSITORY_LC}/${IMAGE_NAME}:${{ steps.meta.outputs.MajorMinorVersion }}
+            ${{ env.REGISTRY }}/${REPOSITORY_LC}/${IMAGE_NAME}:${{ steps.meta.outputs.Version }}
 
       - name: Push Helm chart
         env:
