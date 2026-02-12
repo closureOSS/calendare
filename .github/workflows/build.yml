@@ -72,9 +72,6 @@ jobs:
 
       - name: Build and push database migration container image
         uses: docker/build-push-action@v6
-        env:
-          REPOSITORY_LC: ${{ steps.migr.outputs.repository_lc }}
-          IMAGE_NAME: "calendare-migration"
         with:
           context: .
           file: ./Containerfile.migration
@@ -84,10 +81,10 @@ jobs:
             BUILD_DATE=${{ steps.meta.outputs.GitCommitDate }}
             SEMVER2=${{ steps.meta.outputs.SemVer2 }}
           tags: |
-            ${{ env.REGISTRY }}/${{ REPOSITORY_LC }}/${{ IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ REPOSITORY_LC }}/${{ IMAGE_NAME }}:${{ steps.meta.outputs.SemVer2 }}
-            ${{ env.REGISTRY }}/${{ REPOSITORY_LC }}/${{ IMAGE_NAME }}:${{ steps.meta.outputs.MajorMinorVersion }}
-            ${{ env.REGISTRY }}/${{ REPOSITORY_LC }}/${{ IMAGE_NAME }}:${{ steps.meta.outputs.Version }}
+            ${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_lc }}/calendare-migration:latest
+            ${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.SemVer2 }}
+            ${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.MajorMinorVersion }}
+            ${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.Version }}
 
       - name: Push Helm chart
         env:
