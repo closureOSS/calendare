@@ -60,7 +60,17 @@ The server automatically handles redirects for `/.well-known/caldav` and `/.well
 
 ## Kubernetes - Helm chart
 
-A helm chart is provided at oci://ghcr.io/closureoss/charts/calendare or within the `deploy` subdirectory of the source repository. For a full list of configuration options, please refer to the [**README**](../deploy/README.md) included with the chart.
+A helm chart is provided at `oci://ghcr.io/closureoss/charts/calendare` or within the `deploy` subdirectory of the source repository. For a full list of configuration options, please refer to the [**README**](../deploy/README.md) included with the chart.
+
+```shell
+helm upgrade --install calendare oci://ghcr.io/closureoss/charts/calendare -f values.yaml --namespace calendare
+```
+
+Check values with
+
+```shell
+helm show values oci://ghcr.io/closureoss/charts/calendare
+```
 
 ### Network & Security Considerations
 

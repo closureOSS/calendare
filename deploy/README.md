@@ -52,6 +52,16 @@ The default ConnectionString is `Host=calendare-cluster-rw;Username=app;Database
 > [!TIP]
 > The secret created by [CloudNativePG](https://cloudnative-pg.io/) for a PostgreSQL in the same namespace as the application fullfils the criteria.
 
+You can initialize or update the database schema using one of two methods:
+
+- **Manual (Recommended)**: Apply the provided SQL script (data/erm.sql) using your preferred database tooling. This offers full control over when changes occur.
+
+- **Automated (Helm)**: Set `migration.enabled=true` in the Helm chart.
+
+> [!NOTE]
+> If using the Helm-based migration, it is best practice to disable it (`migration.enabled=false`) after a successful deployment to avoid a performance penalty during server startup. Refer to the release notes to determine when a re-enable is necessary for future updates.
+
+
 ## OIDC Provider Configuration
 
 While the **Calendare Server** does not use JWT (JSON Web Tokens) or OIDC for authenticating standard calendar and contact clients (which typically use Basic or Digest authentication), an OIDC provider is a mandatory infrastructure requirement for the User Self-Administration UI.
