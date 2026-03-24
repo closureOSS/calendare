@@ -85,6 +85,7 @@ public static partial class AdministrationApi
         .WithName("DeleteTrxJournal")
         .RequireAuthorization()
         .WithSummary("Deletes transaction journal")
+        .WithTags(["Operation"])
         .WithDescription("Deletes transaction journal")
         ;
 
@@ -105,7 +106,7 @@ public static partial class AdministrationApi
         .WithName("GetLatestSyncToken")
         .RequireAuthorization()
         .WithSummary("Gets the latest sync token for a collection")
-        .WithDescription("Gets the latest sync token for a collection, can only be used in TEST mode")
+        .WithDescription("Gets the latest sync token for a collection; can only be used in TEST mode")
         .WithTags(["Testing"])
         .ProducesProblem(StatusCodes.Status404NotFound)
         ;
