@@ -144,6 +144,7 @@ try
     builder.Services.AddCaldav();
 
     builder.Services.AddVSyntaxReaderExtended(TimezoneResolvers.Static);
+    builder.Services.AddWebPush();
 
     builder.Services.Configure<JwtBearerProviderOptions>(builder.Configuration.GetSection("JwtBearer"));
     builder.Services.ConfigureJwtBearerProvider();

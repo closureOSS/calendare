@@ -33,59 +33,55 @@ public class WebpushWorker : BackgroundService
 
     private async Task Consumer(CancellationToken ct)
     {
-        using (var scope = ServiceProvider.CreateScope())
-        {
-            var repoPush = scope.ServiceProvider.GetRequiredService<PushSubscriptionRepository>();
-            var repoToken = scope.ServiceProvider.GetRequiredService<ItemRepository>();
-            var vapidOptions = scope.ServiceProvider.GetRequiredService<IOptions<VapidOptions>>();
-            var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        var repoPush = scope.ServiceProvider.GetRequiredService<PushSubscriptionRepository>();
+        var repoToken = scope.ServiceProvider.GetRequiredService<ItemRepository>();
+        var vapidOptions = scope.ServiceProvider.GetRequiredService<IOptions<VapidOptions>>();
+        var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
 
-            while (!ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested)
+        {
+            var msg = await Queue.Pop(ct);
+            if (msg is null)
             {
-                var msg = await Queue.Pop(ct);
-                if (msg is not null)
+                await Task.Delay(100, ct);
+                continue;
+            }
+            // check if push subscription for collection exists
+            var subscriptions = await repoPush.ListByCollectionId(msg.CollectionId, ct);
+            if (subscriptions.Count == 0)
+            {
+                continue;
+            }
+
+            // if yes, retrieve sync token
+            var topic = subscriptions[0].Resource.PermanentId.ToBase64Url();
+            var syncTokenInfo = await repoToken.GetCurrentSyncToken(msg.CollectionId, ct);
+            var syncToken = syncTokenInfo.Uri;
+            Log.Information("Changes in collection {collectionId} {topic} announced as {syncToken}", msg.CollectionId, topic, syncToken);
+
+            // and send push message
+            foreach (var subscription in subscriptions)
+            {
+                try
                 {
-                    // Log.Information("Changes in collection {collectionId} announced", msg.CollectionId);
-                    // await Task.Delay(500, ct);  // wait for overlapping changes ...
-                    // check if push subscription for collection exists
-                    var subscriptions = await repoPush.ListByCollectionId(msg.CollectionId, ct);
-                    if (subscriptions.Count != 0)
+                    using var client = httpClientFactory.CreateClient(nameof(WebpushWorker));
+                    client.BaseAddress = new Uri(subscription.PushDestinationUri);
+                    var webPushClient = new WebPushClient(client);
+                    var success = await SendPushMessage(webPushClient, subscription, vapidOptions.Value, topic, CreateXmlPushMessage(topic, syncToken), ct);
+                    if (success)
                     {
-                        // if yes, retrieve sync token
-                        var topic = subscriptions[0].Resource.PermanentId.ToBase64Url();
-                        var syncTokenInfo = await repoToken.GetCurrentSyncToken(msg.CollectionId, ct);
-                        var syncToken = syncTokenInfo.Uri;
-                        Log.Information("Changes in collection {collectionId} {topic} announced as {syncToken}", msg.CollectionId, topic, syncToken);
-                        // and send push message
-                        foreach (var subscription in subscriptions)
-                        {
-                            try
-                            {
-                                using var client = httpClientFactory.CreateClient();
-                                client.BaseAddress = new Uri(subscription.PushDestinationUri);
-                                // var success = await SendPushMessage(client, subscription, webpushOptions.Value, topic, CreateXmlPushMessage(topic, syncToken), ct);
-                                var webPushClient = new WebPushClient(client);
-                                var success = await SendPushMessage(webPushClient, subscription, vapidOptions.Value, topic, CreateXmlPushMessage(topic, syncToken), ct);
-                                if (success)
-                                {
-                                    await repoPush.MarkSuccess(subscription, ct);
-                                }
-                                else
-                                {
-                                    await repoPush.MarkFailure(subscription, ct);
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                Log.Error(e, "Sending push message failed");
-                                await repoPush.MarkFailure(subscription, ct);
-                            }
-                        }
+                        await repoPush.MarkSuccess(subscription, ct);
+                    }
+                    else
+                    {
+                        await repoPush.MarkFailure(subscription, ct);
                     }
                 }
-                else
+                catch (Exception e)
                 {
-                    await Task.Delay(100, ct);
+                    Log.Error(e, "Sending push message failed");
+                    await repoPush.MarkFailure(subscription, ct);
                 }
             }
         }
@@ -108,7 +104,7 @@ public class WebpushWorker : BackgroundService
         return xmlDoc;
     }
 
-    private static async Task<bool> SendPushMessage(IWebPushClient webPushClient, Calendare.Data.Models.PushSubscription subscriptionOptions, VapidOptions vapid, string topic, XDocument xml, CancellationToken ct)
+    private static async Task<bool> SendPushMessage(WebPushClient webPushClient, Calendare.Data.Models.PushSubscription subscriptionOptions, VapidOptions vapid, string topic, XDocument xml, CancellationToken ct)
     {
         WebPush.PushSubscription subscription = new PushSubscription(subscriptionOptions.PushDestinationUri, subscriptionOptions.ClientPublicKey!, subscriptionOptions.AuthSecret!);
         var uri = new Uri(subscription.Endpoint);
@@ -122,7 +118,6 @@ public class WebpushWorker : BackgroundService
                 ContentEncoding = ContentEncoding.Aes128gcm,
             };
             await webPushClient.SendNotificationAsync(subscription, payload, options, ct);
-            // var body = new StringContent(content, Encoding.UTF8, "application/xml");
             return true;
         }
         catch (Exception e)
