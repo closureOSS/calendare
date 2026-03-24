@@ -45,7 +45,7 @@ jobs:
           echo "repository_owner_lc=$REPOSITORY_OWNER_LC" >> $GITHUB_OUTPUT
 
       - name: Log in to registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -57,7 +57,7 @@ jobs:
           IMAGE_NAME: "calendare-server"
         run: |
           dotnet publish --os linux --arch x64 /t:PublishContainer \
-            /p:ContainerImageTags='"${{ steps.meta.outputs.SemVer2 }};${{ steps.meta.outputs.MajorMinorVersion }};${{ steps.meta.outputs.Version }};latest"' \
+            /p:ContainerImageTags='\"${{ steps.meta.outputs.SemVer2 }};${{ steps.meta.outputs.MajorMinorVersion }};${{ steps.meta.outputs.Version }};latest\"' \
             -p ContainerRegistry=${{ env.REGISTRY }} \
             -p ContainerRepository=${REPOSITORY_LC}/${IMAGE_NAME}
 
@@ -68,10 +68,10 @@ jobs:
           dotnet ef migrations bundle --self-contained -r linux-x64 --force -o ../artifacts/efbundle
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push database migration container image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Containerfile.migration
