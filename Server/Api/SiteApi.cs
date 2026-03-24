@@ -71,12 +71,14 @@ public static partial class AdministrationApi
         .RequireAuthorization()
         .WithSummary("Delete all data of site")
         .WithDescription("Removes all data of the site; can only be used in TEST mode")
+        .WithTags(["Testing"])
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 
         api.MapDelete("/site/trxjournal", async (SiteRepository siteRepository, HttpContext context) =>
         {
             // TODO: add cut off time to prune transaction log
+            // TODO: Check for admin permission
             var cnt = await siteRepository.DeleteTrxJournal(context.RequestAborted);
             return Results.Ok();
         })
@@ -86,9 +88,13 @@ public static partial class AdministrationApi
         .WithDescription("Deletes transaction journal")
         ;
 
-        api.MapGet("/sync", async Task<Results<Ok<SyncTokenResponse>, NotFound, BadRequest<ProblemDetails>>> (
-            [FromQuery(Name = "collection"), Required] string collectionUri, ItemRepository itemRepository, HttpContext context) =>
+        api.MapGet("/sync", async Task<Results<Ok<SyncTokenResponse>, NotFound, UnauthorizedHttpResult, BadRequest<ProblemDetails>>> (
+            [FromQuery(Name = "collection"), Required] string collectionUri, DavEnvironmentRepository env, ItemRepository itemRepository, HttpContext context) =>
         {
+            if (env.IsTestMode != true)
+            {
+                return TypedResults.Unauthorized();
+            }
             var token = await itemRepository.GetLatestSyncToken($"/{collectionUri}", context.RequestAborted);
             if (token is not null && token.Id > Guid.Empty)
             {
@@ -99,7 +105,7 @@ public static partial class AdministrationApi
         .WithName("GetLatestSyncToken")
         .RequireAuthorization()
         .WithSummary("Gets the latest sync token for a collection")
-        .WithDescription("Gets the latest sync token for a collection, only for test automation")
+        .WithDescription("Gets the latest sync token for a collection, can only be used in TEST mode")
         .WithTags(["Testing"])
         .ProducesProblem(StatusCodes.Status404NotFound)
         ;
