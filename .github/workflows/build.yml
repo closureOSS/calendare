@@ -55,9 +55,9 @@ jobs:
         env:
           REPOSITORY_LC: ${{ steps.migr.outputs.repository_lc }}
           IMAGE_NAME: "calendare-server"
+          ContainerImageTags: "${{ steps.meta.outputs.SemVer2 }};${{ steps.meta.outputs.MajorMinorVersion }};${{ steps.meta.outputs.Version }};latest"
         run: |
           dotnet publish --os linux --arch x64 /t:PublishContainer \
-            /p:ContainerImageTags='\"${{ steps.meta.outputs.SemVer2 }};${{ steps.meta.outputs.MajorMinorVersion }};${{ steps.meta.outputs.Version }};latest\"' \
             -p ContainerRegistry=${{ env.REGISTRY }} \
             -p ContainerRepository=${REPOSITORY_LC}/${IMAGE_NAME}
 
