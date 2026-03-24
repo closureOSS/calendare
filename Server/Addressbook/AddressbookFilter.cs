@@ -5,7 +5,6 @@ using Calendare.Server.Constants;
 namespace Calendare.Server.Addressbook;
 
 
-
 public class AddressbookFilter
 {
     /// <summary>
@@ -30,7 +29,7 @@ public class AddressbookFilter
         var xmlTest = xmlFilter.Attribute("test");
         var filter = new AddressbookFilter
         {
-            LogicalAnd = xmlTest is not null && "allof".Equals(xmlTest.Value, System.StringComparison.InvariantCultureIgnoreCase)
+            LogicalAnd = xmlTest is not null && "allof".Equals(xmlTest.Value, System.StringComparison.InvariantCultureIgnoreCase),
         };
         filter.PropFilters.AddRange(PropertyFilter.Parse(xmlFilter));
         return filter;

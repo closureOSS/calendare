@@ -77,7 +77,7 @@ public partial class PostHandler : HandlerBase, IMethodHandler
             organizer = freeBusyRequest.Organizer;
             evalRange = new Interval(freeBusyRequest.DateStart, freeBusyRequest.DateEnd);
         }
-        else if (vcal.Children.Where(c => c is RecurringComponent).FirstOrDefault() is RecurringComponent recurringComponent)
+        else if (vcal.Children.FirstOrDefault(c => c is RecurringComponent) is RecurringComponent recurringComponent)
         {
             if (recurringComponent.Uid is not null)
             {

@@ -76,11 +76,8 @@ internal class CaldavMiddleware : IMiddleware
                             await recorder.Write();
                         }
                     }
-                    else
-                    {
-                        Log.Warning("Method {method} no supported", $"SCHEDULE#{context.Request.Method}");
-                        await next(context);
-                    }
+                    Log.Warning("Method {method} no supported", $"SCHEDULE#{context.Request.Method}");
+                    await next(context);
                     break;
 
                 default:

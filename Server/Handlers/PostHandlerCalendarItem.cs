@@ -63,8 +63,6 @@ public partial class PostHandler : HandlerBase, IMethodHandler
             await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Caldav + "valid-calendar-object-resource", "Calendar contains multiple unrelated components");
             return;
         }
-        // TODO: try to load resource via UID ... should return nothing
-        // var targetContext = await ResourceRepository.GetByUidAsync(httpContext, vCalendarUnique.Uid, resource.Owner.UserId, CollectionType.Calendar, httpContext.RequestAborted);
         var calendarItemContext = await ResourceRepository.GetResourceAsync(new($"/{resource.DavName}/{vCalendarUnique.Uid}.ics"), httpContext, httpContext.RequestAborted);
         if (calendarItemContext.Exists)
         {

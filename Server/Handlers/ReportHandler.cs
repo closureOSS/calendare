@@ -59,45 +59,39 @@ public partial class ReportHandler : HandlerBase, IMethodHandler
         Recorder.SetRequestBody(xmlRequestDoc);
 
 
-        if (Reports.TryGetValue(xmlRequestDoc.Root.Name, out var reportType))
-        {
-            var properties = xmlRequestDoc.GetProperties();
-            var report = (IReport)httpContext.RequestServices.GetRequiredService(reportType);
-            var reportResponse = await report.Report(xmlRequestDoc, resource, properties, httpContext);
-            if (reportResponse is not null)
-            {
-                if (reportResponse.Doc is not null)
-                {
-                    Recorder.SetResponseBody(reportResponse.Doc);
-                    await response.BodyXmlAsync(reportResponse.Doc, HttpStatusCode.MultiStatus, httpContext.RequestAborted);
-                }
-                else if (!string.IsNullOrEmpty(reportResponse.Content) || !string.IsNullOrEmpty(reportResponse.ContentType))
-                {
-                    Recorder.SetResponseBody(reportResponse.Content ?? "");
-                    response.ContentType = reportResponse.ContentType;
-                    response.StatusCode = (int)reportResponse.StatusCode;
-                    await response.WriteAsync(reportResponse.Content ?? "", httpContext.RequestAborted);
-                }
-                else
-                {
-                    if (reportResponse.MissingPrivilege == PrivilegeMask.None)
-                    {
-                        await WriteStatusAsync(httpContext, reportResponse.StatusCode, reportResponse.Comment);
-                    }
-                    else
-                    {
-                        await WriteErrorNeedPrivilegeAsync(httpContext, resource.DavName, reportResponse.MissingPrivilege);
-                    }
-                }
-            }
-            else
-            {
-                await WriteStatusAsync(httpContext, HttpStatusCode.InternalServerError);
-            }
-        }
-        else
+        if (!Reports.TryGetValue(xmlRequestDoc.Root.Name, out var reportType))
         {
             await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "supported-report", $"\"{xmlRequestDoc.Root.Name}\" is not a supported report type.");
+            return;
         }
+
+        var properties = xmlRequestDoc.GetProperties();
+        var report = (IReport)httpContext.RequestServices.GetRequiredService(reportType);
+        var reportResponse = await report.Report(xmlRequestDoc, resource, properties, httpContext);
+        if (reportResponse is null)
+        {
+            await WriteStatusAsync(httpContext, HttpStatusCode.InternalServerError);
+            return;
+        }
+        if (reportResponse.Doc is not null)
+        {
+            Recorder.SetResponseBody(reportResponse.Doc);
+            await response.BodyXmlAsync(reportResponse.Doc, HttpStatusCode.MultiStatus, httpContext.RequestAborted);
+            return;
+        }
+        if (!string.IsNullOrEmpty(reportResponse.Content) || !string.IsNullOrEmpty(reportResponse.ContentType))
+        {
+            Recorder.SetResponseBody(reportResponse.Content ?? "");
+            response.ContentType = reportResponse.ContentType;
+            response.StatusCode = (int)reportResponse.StatusCode;
+            await response.WriteAsync(reportResponse.Content ?? "", httpContext.RequestAborted);
+            return;
+        }
+        if (reportResponse.MissingPrivilege != PrivilegeMask.None)
+        {
+            await WriteErrorNeedPrivilegeAsync(httpContext, resource.DavName, reportResponse.MissingPrivilege);
+            return;
+        }
+        await WriteStatusAsync(httpContext, reportResponse.StatusCode, reportResponse.Comment);
     }
 }

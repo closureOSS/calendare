@@ -20,7 +20,7 @@ public class CaldavUri
         {
             var part = segment.EndsWith('/') ? segment[..^1] : segment;
             var isLast = idx == Segments.Length - 1;
-            // TODO: prefix check is good weather safe ... should either match fully or not at all
+            // TODO: Prefix check is brittle. Switch to full-match or nothing logic.
             if (hasPrefix && prefixSegments?.Length > idx)
             {
                 if (string.Equals(part, prefixSegments[idx], StringComparison.Ordinal))

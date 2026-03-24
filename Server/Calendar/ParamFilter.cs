@@ -26,13 +26,12 @@ public class ParamFilter
                 // TODO: Verify, currently silently ignoring if not name attribute exists
                 continue;
             }
-            var xmlTest = xmlParamFilter.Attribute("test");
             var xmlIsNotDefined = xmlParamFilter.Element(XmlNs.Carddav + "is-not-defined");
             var pf = new ParamFilter
             {
                 Name = propName.Value.ToUpperInvariant(),
                 IsNotDefined = xmlIsNotDefined is not null,
-                TextMatches = PropertyFilter.ParseTextMatches(xmlParamFilter)
+                TextMatches = PropertyFilter.ParseTextMatches(xmlParamFilter),
             };
             if (pf.IsValid())
             {

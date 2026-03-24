@@ -97,7 +97,7 @@ public partial class GetHandler : HandlerBase, IMethodHandler
                     switch (child)
                     {
                         case VTimezone vtimezone:
-                            var hasTZ = calendar.Children.Where(c => c is VTimezone).FirstOrDefault(t => t is VTimezone tz && string.Equals(tz.TzId, vtimezone.TzId, System.StringComparison.Ordinal));
+                            var hasTZ = calendar.Children.FirstOrDefault(t => t is VTimezone tz && string.Equals(tz.TzId, vtimezone.TzId, System.StringComparison.Ordinal));
                             if (hasTZ is null)
                             {
                                 calendar.AddChild(vtimezone);

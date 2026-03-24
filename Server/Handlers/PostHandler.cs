@@ -59,7 +59,6 @@ public partial class PostHandler : HandlerBase, IMethodHandler
     public async Task HandleRequestAsync(HttpContext httpContext, DavResource resource)
     {
         var request = httpContext.Request;
-        var response = httpContext.Response;
         if (!MediaTypeHeaderValue.TryParse(request.ContentType, out var contentType))
         {
             Log.Warning("Content type missing or invalid", request.ContentType);
