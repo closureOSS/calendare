@@ -32,7 +32,7 @@ public class ResourceRepository
     {
         var result = new List<DavResource>();
         var sql = PrincipalRepository.QueryPrincipalsAsync(query);
-        await foreach (var principal in sql.OrderBy(c => c.Uri).Select(c => c.ToPrincipal()).AsAsyncEnumerable())
+        await foreach (var principal in sql.OrderBy(c => c.Uri).Select(c => c.ToPrincipal()).AsAsyncEnumerable().WithCancellation(ct))
         {
             var uri = new CaldavUri(principal.Uri);
             var resource = new DavResource(uri)

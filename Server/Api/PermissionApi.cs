@@ -40,6 +40,7 @@ public static partial class AdministrationApi
                 GlobalPermitSelf = collection.GlobalPermitSelf,
                 OwnerProhibit = collection.OwnerProhibit,
                 Permissions = resource.Privileges,
+                Administration = PrivilegeMask.None,
                 IsRoot = resource.CurrentUser.Id == StockPrincipal.Admin,
             };
             return TypedResults.Ok(result);
@@ -62,7 +63,7 @@ public static partial class AdministrationApi
                 return TypedResults.NotFound();
             }
             var cupr = currentUserPrincipal.ToView(currentUserPrincipal.UserId);
-            var adminPermissions = await userRepository.CheckPrivilegeAsync(new() { Id = StockPrincipal.Admin }, currentUserPrincipal, context.RequestAborted);
+            var adminPermissions = await userRepository.CheckPrivilegeAdministrationAsync(currentUserPrincipal, context.RequestAborted);
             var result = new PermissionResponse
             {
                 Uri = currentUserPrincipal.Uri,
@@ -74,8 +75,8 @@ public static partial class AdministrationApi
                 GlobalPermitSelf = currentUserPrincipal.GlobalPermitSelf,
                 OwnerProhibit = currentUserPrincipal.OwnerProhibit,
                 Permissions = cupr.Permissions,
+                Administration = adminPermissions,
                 IsRoot = cupr.IsRoot,
-                IsAdmin = currentUserPrincipal.UserId == StockPrincipal.Admin || (adminPermissions & PrivilegeMask.Bind) == PrivilegeMask.Bind,
             };
             return TypedResults.Ok(result);
         })

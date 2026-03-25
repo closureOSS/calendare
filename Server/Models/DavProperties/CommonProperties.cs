@@ -363,7 +363,7 @@ public static partial class PropertiesDefinition
                     {
                         Grantee = resource.Owner,
                         Privileges = PrivilegeMask.All,
-                        Name = XmlNs.Dav + "owner"
+                        Name = XmlNs.Dav + "owner",
                     }
                 };
                 var userRepository = ctx.RequestServices.GetRequiredService<UserRepository>();
@@ -380,7 +380,7 @@ public static partial class PropertiesDefinition
                 {
                     Grantee = resource.CurrentUser,
                     Privileges = resource.CurrentUser.GlobalPermit,
-                    Name = XmlNs.Dav + "authenticated"
+                    Name = XmlNs.Dav + "authenticated",
                 });
                 // For each principal add a ace - element
                 foreach (var ace in aceList)
