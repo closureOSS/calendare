@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Calendare.Data;
+using Calendare.Data.Models;
 using Calendare.Server.Api.Models;
 using Calendare.Server.Migrations;
 using Calendare.Server.Repository;
@@ -58,14 +59,24 @@ public static partial class AdministrationApi
         .WithSummary("Verify state of connection and authentication")
         ;
 
-        api.MapDelete("/site", async (DavEnvironmentRepository env, SiteRepository siteRepository, HttpContext context) =>
+        api.MapDelete("/site", async Task<Results<Ok, UnauthorizedHttpResult>> (DavEnvironmentRepository env, SiteRepository siteRepository, UserRepository userRepository, HttpContext context) =>
         {
             if (env.IsTestMode != true)
             {
-                return Results.Unauthorized();
+                return TypedResults.Unauthorized();
+            }
+            var (_, currentUserPrincipal) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, PrivilegeMask.None, context.RequestAborted);
+            if (currentUserPrincipal is null)
+            {
+                return TypedResults.Unauthorized();
+            }
+            var adminPermissions = await userRepository.CheckPrivilegeAdministrationAsync(currentUserPrincipal, context.RequestAborted);
+            if ((adminPermissions & PrivilegeMask.WriteAcl) == PrivilegeMask.None)
+            {
+                return TypedResults.Unauthorized();
             }
             var cnt = await siteRepository.DeleteAllAsync(context.RequestAborted);
-            return Results.Ok();
+            return TypedResults.Ok();
         })
         .WithName("DeleteWholeSite")
         .RequireAuthorization()
@@ -75,18 +86,28 @@ public static partial class AdministrationApi
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 
-        api.MapDelete("/site/trxjournal", async (SiteRepository siteRepository, HttpContext context) =>
+        api.MapDelete("/site/trxjournal", async Task<Results<Ok, UnauthorizedHttpResult>> (SiteRepository siteRepository, UserRepository userRepository, HttpContext context) =>
         {
             // TODO: add cut off time to prune transaction log
-            // TODO: Check for admin permission
+            var (_, currentUserPrincipal) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, PrivilegeMask.None, context.RequestAborted);
+            if (currentUserPrincipal is null)
+            {
+                return TypedResults.Unauthorized();
+            }
+            var adminPermissions = await userRepository.CheckPrivilegeAdministrationAsync(currentUserPrincipal, context.RequestAborted);
+            if ((adminPermissions & PrivilegeMask.WriteAcl) == PrivilegeMask.None)
+            {
+                return TypedResults.Unauthorized();
+            }
             var cnt = await siteRepository.DeleteTrxJournal(context.RequestAborted);
-            return Results.Ok();
+            return TypedResults.Ok();
         })
         .WithName("DeleteTrxJournal")
         .RequireAuthorization()
         .WithSummary("Deletes transaction journal")
         .WithTags(["Operation"])
         .WithDescription("Deletes transaction journal")
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 
         api.MapGet("/sync", async Task<Results<Ok<SyncTokenResponse>, NotFound, UnauthorizedHttpResult, BadRequest<ProblemDetails>>> (
@@ -109,6 +130,7 @@ public static partial class AdministrationApi
         .WithDescription("Gets the latest sync token for a collection; can only be used in TEST mode")
         .WithTags(["Testing"])
         .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 
         return api;
