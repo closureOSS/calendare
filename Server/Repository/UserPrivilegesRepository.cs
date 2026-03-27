@@ -120,7 +120,14 @@ public partial class UserRepository
     {
         // TODO: [Low] Improve unnest groups, this is hard-core reading the whole membership list and unnesting in memory
         //             but potentially the fastest way
-        var gms = await Db.CollectionGroup.Include(cg => cg.Group).Select(cg => new { cg.GroupId, GroupParentId = cg.Group.ParentId, cg.MemberId }).ToListAsync(ct);
+        var gms = await Db.CollectionGroup.Include(cg => cg.Group).Select(cg => new
+        {
+            cg.GroupId,
+            GroupParentId = cg.Group.ParentId,
+            cg.MemberId,
+            MemberType = cg.Member.PrincipalTypeId,
+            GroupType = cg.Group.PrincipalTypeId,
+        }).ToListAsync(ct);
         var queue = new Queue<int>();
         var result = new HashSet<int>();
         foreach (var ms in gms.Where(cg => cg.MemberId == principalCollectionId))
@@ -128,10 +135,12 @@ public partial class UserRepository
             queue.Enqueue(ms.GroupParentId ?? ms.GroupId);
             result.Add(ms.GroupId);
         }
+        var GroupTypeId = StaticData.PrincipalTypeList[PrincipalTypes.Group].Id;
         while (queue.Count > 0)
         {
             int groupId = queue.Dequeue();
-            foreach (var ms in gms.Where(cg => cg.MemberId == groupId))
+            // if member is a group, resolve
+            foreach (var ms in gms.Where(cg => cg.MemberId == groupId && cg.MemberType == GroupTypeId))
             {
                 if (result.Add(ms.GroupId))
                 {
