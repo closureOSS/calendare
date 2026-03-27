@@ -63,4 +63,24 @@ public static partial class AdministrationApi
         }
         return (collection, resource);
     }
+
+    public static async Task<Principal?> TryGetAdministrator(UserRepository userRepository, IIdentity? identity, PrivilegeMask accessRights, CancellationToken ct)
+    {
+        if (accessRights == PrivilegeMask.None)
+        {
+            return null;
+        }
+        var (_, currentUserPrincipal) = await TryGetAuthorizedPrincipal(userRepository, identity, PrivilegeMask.None, ct);
+        if (currentUserPrincipal is null)
+        {
+            return null;
+        }
+        var adminPermissions = await userRepository.CheckPrivilegeAdministrationAsync(currentUserPrincipal, ct);
+        if ((adminPermissions & accessRights) == PrivilegeMask.None)
+        {
+            return null;
+        }
+        return currentUserPrincipal;
+    }
+
 }

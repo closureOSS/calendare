@@ -65,13 +65,8 @@ public static partial class AdministrationApi
             {
                 return TypedResults.Unauthorized();
             }
-            var (_, currentUserPrincipal) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, PrivilegeMask.None, context.RequestAborted);
+            var currentUserPrincipal = await TryGetAdministrator(userRepository, context.User.Identity, PrivilegeMask.AdminSysOps, context.RequestAborted);
             if (currentUserPrincipal is null)
-            {
-                return TypedResults.Unauthorized();
-            }
-            var adminPermissions = await userRepository.CheckPrivilegeAdministrationAsync(currentUserPrincipal, context.RequestAborted);
-            if ((adminPermissions & PrivilegeMask.WriteAcl) == PrivilegeMask.None)
             {
                 return TypedResults.Unauthorized();
             }
@@ -88,17 +83,12 @@ public static partial class AdministrationApi
 
         api.MapDelete("/site/trxjournal", async Task<Results<Ok, UnauthorizedHttpResult>> (SiteRepository siteRepository, UserRepository userRepository, HttpContext context) =>
         {
-            // TODO: add cut off time to prune transaction log
-            var (_, currentUserPrincipal) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, PrivilegeMask.None, context.RequestAborted);
+            var currentUserPrincipal = await TryGetAdministrator(userRepository, context.User.Identity, PrivilegeMask.AdminSysOps, context.RequestAborted);
             if (currentUserPrincipal is null)
             {
                 return TypedResults.Unauthorized();
             }
-            var adminPermissions = await userRepository.CheckPrivilegeAdministrationAsync(currentUserPrincipal, context.RequestAborted);
-            if ((adminPermissions & PrivilegeMask.WriteAcl) == PrivilegeMask.None)
-            {
-                return TypedResults.Unauthorized();
-            }
+            // TODO: add cut off time to prune transaction log
             var cnt = await siteRepository.DeleteTrxJournal(context.RequestAborted);
             return TypedResults.Ok();
         })

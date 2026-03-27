@@ -36,17 +36,17 @@ public enum PrivilegeMask : ushort
     /// <summary>
     /// https://datatracker.ietf.org/doc/html/rfc3744#section-3.8
     ///
-    /// For administrative permissions: Allow system operation
+    /// For administrative permissions: Allow system operation (AdminSysOps)
     /// </summary>
     WriteAcl = 0b0000_0001_0000_0000,
     /// <summary>
     /// https://datatracker.ietf.org/doc/html/rfc3744#section-3.9
+    ///
+    /// For administrative permissions: Allow creation of principals (AdminManager)
     /// </summary>
     Bind = 0b0000_0000_0100_0000,
     /// <summary>
     /// https://datatracker.ietf.org/doc/html/rfc3744#section-3.10
-    ///
-    /// For administrative permissions: Allow creation of principals
     /// </summary>
     Unbind = 0b0000_0000_1000_0000,
     /// <summary>
@@ -70,6 +70,7 @@ public enum PrivilegeMask : ushort
     /// https://datatracker.ietf.org/doc/html/rfc3744#section-3.2
     /// </summary>
     Write = WriteProperties | WriteContent | Bind | Unbind,
-
+    AdminSysOps = WriteAcl,
+    AdminManager = Bind,
     // select rt.name, rt."privileges", lpad("privileges"::text,16,'0')::bit(16)::int from relationship_type rt
 }
