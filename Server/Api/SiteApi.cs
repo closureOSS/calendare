@@ -70,7 +70,7 @@ public static partial class AdministrationApi
             {
                 return TypedResults.Unauthorized();
             }
-            var cnt = await siteRepository.DeleteAllAsync(context.RequestAborted);
+            var cnt = await siteRepository.DeleteAllAsync(resetInstallation: false, context.RequestAborted);
             return TypedResults.Ok();
         })
         .WithName("DeleteWholeSite")

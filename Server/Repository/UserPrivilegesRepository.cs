@@ -175,6 +175,10 @@ public partial class UserRepository
             var existing = existingGrants.FirstOrDefault(gg => gg.GrantorId == grant.GrantorId && gg.GranteeId == grant.GranteeId);
             if (existing is null)
             {
+                if (grant.Privileges == PrivilegeMask.None)
+                {
+                    continue;
+                }
                 Db.GrantRelation.Add(grant);
             }
             else
@@ -190,7 +194,7 @@ public partial class UserRepository
                 }
             }
         }
-        Db.GrantRelation.RemoveRange(existingGrants.Where(oldGrant => oldGrant.IsIndirect == true && !grantRelations.Any(gr => gr.GranteeId == oldGrant.GranteeId && gr.GrantorId == oldGrant.GrantorId)));
+        Db.GrantRelation.RemoveRange(existingGrants.Where(oldGrant => oldGrant.IsIndirect == true && !grantRelations.Any(gr => gr.GranteeId == oldGrant.GranteeId && gr.GrantorId == oldGrant.GrantorId && gr.Privileges != PrivilegeMask.None)));
         await Db.SaveChangesAsync(ct);
     }
 }

@@ -44,7 +44,8 @@ public static class MembershipMapper
             {
                 continue;
             }
-            var group = result.Groups?.FirstOrDefault(g => g.Group.MembershipType == gmr.MembershipType);
+            var group = result.Groups?.FirstOrDefault(g => string.Equals(g.Group.Uri, msr.GroupUri, System.StringComparison.OrdinalIgnoreCase));
+            // var group = result.Groups?.FirstOrDefault(g => g.Group.MembershipType == gmr.MembershipType);
             if (group is null)
             {
                 // TODO: Error???

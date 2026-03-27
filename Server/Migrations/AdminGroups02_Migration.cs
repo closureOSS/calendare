@@ -22,22 +22,24 @@ partial class MigrationRepository
         var now = SystemClock.Instance.GetCurrentInstant();
         var principalTypes = await Context.PrincipalType.ToListAsync(ct);
         var PrincipalTypeGroup = principalTypes.Find(x => string.Equals(x.Label, PrincipalTypeCode.Group, StringComparison.Ordinal)) ?? throw new InvalidOperationException("Valid principal type required");
-        var adminRole = new Usr
-        {
-            IsActive = true,
-            Username = userName,
-            Email = $"{userName}@internal",
-            EmailOk = now,
-            DateFormatType = BootstrapOptions.DateFormatType ?? UserDefaults.DateFormatType,
-            Locale = BootstrapOptions.Locale ?? UserDefaults.Locale,
-        };
+        var root = await Context.Collection.Where(c => c.OwnerId == StockPrincipal.Admin && c.ParentId == null).FirstOrDefaultAsync(ct) ?? throw new InvalidOperationException("Root admin missing");
+        // var adminRole = new Usr
+        // {
+        //     IsActive = true,
+        //     Username = userName,
+        //     Email = $"{userName}@internal",
+        //     EmailOk = now,
+        //     DateFormatType = BootstrapOptions.DateFormatType ?? UserDefaults.DateFormatType,
+        //     Locale = BootstrapOptions.Locale ?? UserDefaults.Locale,
+        // };
         var groupCollection = new Collection
         {
-            Owner = adminRole,
+            OwnerId = root.OwnerId,
             CollectionType = CollectionType.Principal,
             PrincipalType = PrincipalTypeGroup,
-            ParentContainerUri = "/",
-            Uri = $"/{adminRole.Username}/",
+            ParentId = root.Id,
+            ParentContainerUri = $"/{BootstrapOptions.Username ?? "admin"}/",
+            Uri = $"/{BootstrapOptions.Username ?? "admin"}/{userName}/",
             DisplayName = displayName,
             AuthorizedProhibit = PrivilegeMask.All,
             AuthorizedMask = PrivilegeMask.All,
@@ -46,11 +48,12 @@ partial class MigrationRepository
             GlobalPermitSelf = PrivilegeMask.None,
             GlobalPermit = PrivilegeMask.None,
         };
-        adminRole.Collections.Add(groupCollection);
-        Context.Usr.Add(adminRole);
+        Context.Collection.Add(groupCollection);
+        // adminRole.Collections.Add(groupCollection);
+        // Context.Usr.Add(adminRole);
         var relationship = new GrantRelation
         {
-            GrantorId = StockPrincipal.Admin,
+            GrantorId = root.Id,
             Grantee = groupCollection,
             GrantTypeId = 1,
             Privileges = privilege,
