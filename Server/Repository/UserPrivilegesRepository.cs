@@ -157,6 +157,12 @@ public partial class UserRepository
         var existingGrants = await Db.GrantRelation.Where(r => principalCollectionId == r.GranteeId).ToListAsync(ct);
         foreach (var grant in grantRelations.DistinctBy(gr => new { gr.GranteeId, gr.GrantorId }))
         {
+            var privileges = PrivilegeMask.None;
+            foreach (var priv in grantRelations.Where(gr => gr.GrantorId == grant.GrantorId && gr.GranteeId == grant.GranteeId).Select(c => c.Privileges))
+            {
+                privileges |= priv;
+            }
+            grant.Privileges = privileges;
             var existing = existingGrants.FirstOrDefault(gg => gg.GrantorId == grant.GrantorId && gg.GranteeId == grant.GranteeId);
             if (existing is null)
             {
