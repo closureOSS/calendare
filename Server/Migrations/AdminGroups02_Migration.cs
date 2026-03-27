@@ -19,7 +19,6 @@ partial class MigrationRepository
 
     private async Task CreateAdminRoles(string userName, string displayName, PrivilegeMask privilege, CancellationToken ct)
     {
-        var now = SystemClock.Instance.GetCurrentInstant();
         var principalTypes = await Context.PrincipalType.ToListAsync(ct);
         var PrincipalTypeGroup = principalTypes.Find(x => string.Equals(x.Label, PrincipalTypeCode.Group, StringComparison.Ordinal)) ?? throw new InvalidOperationException("Valid principal type required");
         var root = await Context.Collection.Where(c => c.OwnerId == StockPrincipal.Admin && c.ParentId == null).FirstOrDefaultAsync(ct) ?? throw new InvalidOperationException("Root admin missing");
