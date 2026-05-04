@@ -1,18 +1,16 @@
 name: 🏭 Build Calendare Server
 
 on:
-  workflow_dispatch:
-  # push:
-  #   branches:
-  #     - release/**
-  #     - main
-  # pull_request:
-  #   branches:
-  #     - main
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*" # Pattern for standard: v1.2.3
+      - "v[0-9]*.[0-9]*.[0-9]*-*" # Pattern for pre-release: v1.2.3-alpha.1
 
 env:
   REGISTRY: ghcr.io
+  # PROJECT_PATH: "HcloudMetallbController/HcloudMetallbController.csproj"
   CHART_REPO: charts
+  DOTNET_VERSION: "10.x"
 
 jobs:
   build:
@@ -22,27 +20,31 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout code
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 10.x
-
-      - uses: dotnet/nbgv@v0.4.2
-        id: meta
-        with:
-          setAllVars: true
-
-      - name: Prepare lower case names
-        id: migr
+      - name: Extract repo names
+        id: repoinfo
+        shell: bash
         run: |
           REPOSITORY_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "repository_lc=$REPOSITORY_LC" >> $GITHUB_OUTPUT
           REPOSITORY_OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "repository_owner_lc=$REPOSITORY_OWNER_LC" >> $GITHUB_OUTPUT
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.5.0
+
+      - name: Determine Version
+        id: meta
+        uses: gittools/actions/gitversion/execute@v4.5.0
 
       - name: Log in to registry
         uses: docker/login-action@v4
@@ -53,9 +55,13 @@ jobs:
 
       - name: Publish server container to registry
         env:
-          REPOSITORY_LC: ${{ steps.migr.outputs.repository_lc }}
+          REPOSITORY_LC: ${{ steps.repoinfo.outputs.repository_lc }}
           IMAGE_NAME: "calendare-server"
-          ContainerImageTags: "${{ steps.meta.outputs.SemVer2 }};${{ steps.meta.outputs.MajorMinorVersion }};${{ steps.meta.outputs.Version }};latest"
+          ContainerImageTags: >-
+            ${{ steps.meta.outputs.PreReleaseLabel != ''
+                && format('{0};{1};{2}', steps.meta.outputs.SemVer, steps.meta.outputs.MajorMinorPath, steps.meta.outputs.InformationalVersion)
+                || format('{0};{1}.{2};{3};latest', steps.meta.outputs.SemVer, steps.meta.outputs.Major, steps.meta.outputs.Minor, steps.meta.outputs.InformationalVersion)
+            }}
         run: |
           dotnet publish --os linux --arch x64 /t:PublishContainer \
             -p ContainerRegistry=${{ env.REGISTRY }} \
@@ -71,6 +77,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push database migration container image
+        if: steps.meta.outputs.PreReleaseLabel == ''
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -78,18 +85,52 @@ jobs:
           push: true
           # sbom: true
           build-args: |
-            BUILD_DATE=${{ steps.meta.outputs.GitCommitDate }}
-            SEMVER2=${{ steps.meta.outputs.SemVer2 }}
+            BUILD_DATE=${{ steps.meta.outputs.CommitDate }}
+            SEMVER2=${{ steps.meta.outputs.SemVer }}
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_lc }}/calendare-migration:latest
-            ${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.SemVer2 }}
-            ${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.MajorMinorVersion }}
-            ${{ env.REGISTRY }}/${{ steps.migr.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.Version }}
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:latest
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.SemVer }}
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.MajorMinorPatch }}
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.Major }}.${{ steps.meta.outputs.Minor }}
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.InformationalVersion }}
+
+      - name: Build and push database migration container image (pre-release)
+        if: steps.meta.outputs.PreReleaseLabel != ''
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Containerfile.migration
+          push: true
+          # sbom: true
+          build-args: |
+            BUILD_DATE=${{ steps.meta.outputs.CommitDate }}
+            SEMVER2=${{ steps.meta.outputs.SemVer }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.SemVer }}
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.MajorMinorPatch }}
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.InformationalVersion }}
+
+      - name: Get chart name
+        id: chartname
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -r .name deploy/Chart.yaml
 
       - name: Push Helm chart
         env:
-          VERSION: ${{ steps.meta.outputs.SemVer2 }}
-          REPOSITORY_OWNER_LC: ${{ steps.migr.outputs.repository_owner_lc }}
+          VERSION: ${{ steps.meta.outputs.SemVer }}
+          REPOSITORY_OWNER_LC: ${{ steps.repoinfo.outputs.repository_owner_lc }}
+          CHART_NAME: ${{ steps.chartname.outputs.result }}
         run: |
           helm package ./deploy --version "$VERSION" --app-version "$VERSION"
-          helm push calendare-${VERSION}.tgz oci://${{ env.REGISTRY }}/${REPOSITORY_OWNER_LC}/${{ env.CHART_REPO }}
+          helm push ${CHART_NAME}-${VERSION}.tgz oci://${{ env.REGISTRY }}/${REPOSITORY_OWNER_LC}/${{ env.CHART_REPO }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        if: github.ref_type == 'tag'
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "${{ github.ref_name }}"
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ steps.gitversion.outputs.PreReleaseTag != '' }}
