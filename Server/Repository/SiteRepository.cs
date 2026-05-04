@@ -24,11 +24,20 @@ public class SiteRepository
     /// </summary>
     /// <param name="ct"></param>
     /// <returns></returns>
-    public async Task<int> DeleteAllAsync(CancellationToken ct)
+    public async Task<int> DeleteAllAsync(bool resetInstallation, CancellationToken ct)
     {
         await Db.SyncJournal.ExecuteDeleteAsync(ct);
         await Db.CalendarMessage.ExecuteDeleteAsync(ct);
-        var cnt = await Db.Usr.Where(u => u.Id != 1).ExecuteDeleteAsync(ct);
+        if (!resetInstallation)
+        {
+            return await Db.Usr.Where(u => u.Id != 1).ExecuteDeleteAsync(ct);
+        }
+        var cnt = await Db.Usr.ExecuteDeleteAsync(ct);
+        await Db.TrxJournal.ExecuteDeleteAsync(ct);
+        await Db.UsrCredentialType.ExecuteDeleteAsync(ct);
+        await Db.PrincipalType.ExecuteDeleteAsync(ct);
+        await Db.GrantType.ExecuteDeleteAsync(ct);
+        await Db.__DataMigrationHistory.ExecuteDeleteAsync(ct);
         return cnt;
     }
 

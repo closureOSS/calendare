@@ -31,6 +31,7 @@ partial class MigrationRepository : IMigrationRepository
         Log.Warning("Data migration in progress ...");
         await Migrate(nameof(Initial_Migration), Initial_Migration, ct);
         await Migrate(nameof(StaticDataUpdate01_Migration), StaticDataUpdate01_Migration, ct);
+        await Migrate(nameof(AdminGroups02_Migration), AdminGroups02_Migration, ct);
         Log.Warning("Data migration done");
     }
 

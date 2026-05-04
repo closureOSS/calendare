@@ -10,7 +10,7 @@
       "name": "MIT",
       "url": "https://mit-license.org/"
     },
-    "version": "0.5"
+    "version": "0.6"
   },
   "paths": {
     "/api/version": {
@@ -85,80 +85,6 @@
           },
           "200": {
             "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/site": {
-      "delete": {
-        "tags": [
-          "Calendare"
-        ],
-        "summary": "Delete all data of site",
-        "description": "Removes all data of the site; can only be used in TEST mode",
-        "operationId": "DeleteWholeSite",
-        "responses": {
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/site/trxjournal": {
-      "delete": {
-        "tags": [
-          "Calendare"
-        ],
-        "summary": "Deletes transaction journal",
-        "description": "Deletes transaction journal",
-        "operationId": "DeleteTrxJournal",
-        "responses": {
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
           }
         }
       }
@@ -3200,13 +3126,103 @@
         }
       }
     },
+    "/api/site/trxjournal": {
+      "delete": {
+        "tags": [
+          "Operation"
+        ],
+        "summary": "Deletes transaction journal",
+        "description": "Deletes transaction journal",
+        "operationId": "DeleteTrxJournal",
+        "responses": {
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/site": {
+      "delete": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Delete all data of site",
+        "description": "Removes all data of the site; can only be used in TEST mode",
+        "operationId": "DeleteWholeSite",
+        "responses": {
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sync": {
       "get": {
         "tags": [
           "Testing"
         ],
         "summary": "Gets the latest sync token for a collection",
-        "description": "Gets the latest sync token for a collection, only for test automation",
+        "description": "Gets the latest sync token for a collection; can only be used in TEST mode",
         "operationId": "GetLatestSyncToken",
         "parameters": [
           {
@@ -3251,6 +3267,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4010,11 +4036,10 @@
           "ownerProhibit": {
             "$ref": "#/components/schemas/PrivilegeMask"
           },
-          "isRoot": {
-            "type": "boolean",
-            "nullable": true
+          "administration": {
+            "$ref": "#/components/schemas/PrivilegeMask"
           },
-          "isAdmin": {
+          "isRoot": {
             "type": "boolean",
             "nullable": true
           }
@@ -4544,6 +4569,9 @@
   "tags": [
     {
       "name": "Calendare"
+    },
+    {
+      "name": "Operation"
     },
     {
       "name": "Testing"

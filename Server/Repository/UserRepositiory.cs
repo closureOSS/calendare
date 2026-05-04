@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
@@ -96,11 +97,7 @@ public partial class UserRepository
     {
         if (grantor.Id == StockPrincipal.Admin)
         {
-            var root = await Db.Collection.Where(c => c.OwnerId == StockPrincipal.Admin && c.ParentId == null).FirstOrDefaultAsync(ct);
-            if (root is not null)
-            {
-                grantor.Id = root.Id;
-            }
+            return await CheckPrivilegeAdministrationAsync(grantee, ct);
         }
 
         var rel = await Db.GrantRelation
@@ -111,6 +108,25 @@ public partial class UserRepository
             return rel[0].Privileges;
         }
         return PrivilegeMask.None | grantor.GlobalPermit;
+    }
+
+    public async Task<PrivilegeMask> CheckPrivilegeAdministrationAsync(Models.Principal grantee, CancellationToken ct)
+    {
+        if (grantee.UserId == StockPrincipal.Admin)
+        {
+            return PrivilegeMask.All;
+        }
+        var root = await Db.Collection.Where(c => c.OwnerId == StockPrincipal.Admin && c.ParentId == null).FirstOrDefaultAsync(ct) ?? throw new InvalidOperationException("Root admin missing");
+        var grantorId = root.Id;
+
+        var rel = await Db.GrantRelation
+            .Where(x => x.GrantorId == grantorId && x.GranteeId == grantee.Id)
+            .ToListAsync(ct);
+        if (rel is not null && rel.Count == 1)
+        {
+            return rel[0].Privileges;
+        }
+        return PrivilegeMask.None;
     }
 
     public async Task<PrincipalType?> GetPrincipalTypeAsync(string type, CancellationToken ct)

@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Calendare.Data;
+using Calendare.Data.Models;
 using Calendare.Server.Api.Models;
 using Calendare.Server.Migrations;
 using Calendare.Server.Repository;
@@ -58,37 +59,54 @@ public static partial class AdministrationApi
         .WithSummary("Verify state of connection and authentication")
         ;
 
-        api.MapDelete("/site", async (DavEnvironmentRepository env, SiteRepository siteRepository, HttpContext context) =>
+        api.MapDelete("/site", async Task<Results<Ok, UnauthorizedHttpResult>> (DavEnvironmentRepository env, SiteRepository siteRepository, UserRepository userRepository, HttpContext context) =>
         {
             if (env.IsTestMode != true)
             {
-                return Results.Unauthorized();
+                return TypedResults.Unauthorized();
             }
-            var cnt = await siteRepository.DeleteAllAsync(context.RequestAborted);
-            return Results.Ok();
+            var currentUserPrincipal = await TryGetAdministrator(userRepository, context.User.Identity, PrivilegeMask.AdminSysOps, context.RequestAborted);
+            if (currentUserPrincipal is null)
+            {
+                return TypedResults.Unauthorized();
+            }
+            var cnt = await siteRepository.DeleteAllAsync(resetInstallation: false, context.RequestAborted);
+            return TypedResults.Ok();
         })
         .WithName("DeleteWholeSite")
         .RequireAuthorization()
         .WithSummary("Delete all data of site")
         .WithDescription("Removes all data of the site; can only be used in TEST mode")
+        .WithTags(["Testing"])
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 
-        api.MapDelete("/site/trxjournal", async (SiteRepository siteRepository, HttpContext context) =>
+        api.MapDelete("/site/trxjournal", async Task<Results<Ok, UnauthorizedHttpResult>> (SiteRepository siteRepository, UserRepository userRepository, HttpContext context) =>
         {
+            var currentUserPrincipal = await TryGetAdministrator(userRepository, context.User.Identity, PrivilegeMask.AdminSysOps, context.RequestAborted);
+            if (currentUserPrincipal is null)
+            {
+                return TypedResults.Unauthorized();
+            }
             // TODO: add cut off time to prune transaction log
             var cnt = await siteRepository.DeleteTrxJournal(context.RequestAborted);
-            return Results.Ok();
+            return TypedResults.Ok();
         })
         .WithName("DeleteTrxJournal")
         .RequireAuthorization()
         .WithSummary("Deletes transaction journal")
+        .WithTags(["Operation"])
         .WithDescription("Deletes transaction journal")
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 
-        api.MapGet("/sync", async Task<Results<Ok<SyncTokenResponse>, NotFound, BadRequest<ProblemDetails>>> (
-            [FromQuery(Name = "collection"), Required] string collectionUri, ItemRepository itemRepository, HttpContext context) =>
+        api.MapGet("/sync", async Task<Results<Ok<SyncTokenResponse>, NotFound, UnauthorizedHttpResult, BadRequest<ProblemDetails>>> (
+            [FromQuery(Name = "collection"), Required] string collectionUri, DavEnvironmentRepository env, ItemRepository itemRepository, HttpContext context) =>
         {
+            if (env.IsTestMode != true)
+            {
+                return TypedResults.Unauthorized();
+            }
             var token = await itemRepository.GetLatestSyncToken($"/{collectionUri}", context.RequestAborted);
             if (token is not null && token.Id > Guid.Empty)
             {
@@ -99,9 +117,10 @@ public static partial class AdministrationApi
         .WithName("GetLatestSyncToken")
         .RequireAuthorization()
         .WithSummary("Gets the latest sync token for a collection")
-        .WithDescription("Gets the latest sync token for a collection, only for test automation")
+        .WithDescription("Gets the latest sync token for a collection; can only be used in TEST mode")
         .WithTags(["Testing"])
         .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 
         return api;
