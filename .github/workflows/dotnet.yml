@@ -30,11 +30,11 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: true
-          cache-dependency-path: "**/packages.lock.json"
+          # cache: true
+          # cache-dependency-path: "**/packages.lock.json"
 
       - name: Restore dependencies
-        run: dotnet restore --locked-mode
+        run: dotnet restore
 
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v4.5.0
@@ -45,9 +45,14 @@ jobs:
         with:
           updateProjectFiles: true
 
-      - name: Build
+      - name: Build server
         run: dotnet build --no-restore -c Release
 
       - name: Test
         run: dotnet test --no-build -c Release --verbosity normal
 
+      - name: Build database migration
+        working-directory: Data
+        run: |
+          dotnet tool install dotnet-ef
+          dotnet ef migrations bundle --self-contained -r linux-x64 --force -o ../artifacts/efbundle
