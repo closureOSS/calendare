@@ -24,7 +24,7 @@ public static partial class AdministrationApi
         {
             var response = new FeatureResponse
             {
-                Version = ThisAssembly.AssemblyInformationalVersion,
+                Version = GitVersionInformation.SemVer,
                 PathBase = env.PathBase,
             };
             foreach (var feature in Enum.GetValues<CalendareFeatures>())
