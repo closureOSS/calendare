@@ -29,7 +29,7 @@ public static partial class PropertiesDefinition
                     prop.Value = resource.Object?.CalendarItem?.Summary ?? "";
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -40,7 +40,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Value = $"{MimeContentTypes.VCalendar}; component=vevent"; // TODO: vevent must be variable ???
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -50,7 +50,7 @@ public static partial class PropertiesDefinition
             GetValue = (prop, qry, resource, ctx) =>
             {
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -63,7 +63,7 @@ public static partial class PropertiesDefinition
             {
                 if (!string.IsNullOrEmpty(resource.ScheduleTag)) prop.Value = $"\"{resource.ScheduleTag}\"";
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -155,7 +155,7 @@ public static partial class PropertiesDefinition
                     }
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -169,10 +169,10 @@ public static partial class PropertiesDefinition
                 prop.AddSupportedReports([
                     XmlNs.Caldav + "calendar-query",
                     XmlNs.Caldav + "calendar-multiget",
-                    XmlNs.Caldav + "free-busy-query"
+                    XmlNs.Caldav + "free-busy-query",
                 ]);
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
 
         return repo;

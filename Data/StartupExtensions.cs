@@ -1,8 +1,8 @@
-﻿using System;
-using Calendare.Data.Models;
+﻿using Calendare.Data.Models;
 using Calendare.Data.Options;
 using Calendare.Data.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -30,7 +30,7 @@ public static class StartupExtensions
             .EnableDetailedErrors()
 #if DEBUG
             .EnableSensitiveDataLogging()
-            // .ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))
+            .ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))
 #endif
             .UseSnakeCaseNamingConvention();
     }

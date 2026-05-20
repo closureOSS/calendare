@@ -52,7 +52,17 @@ public partial class PostHandler : HandlerBase, IMethodHandler
         if (!parseResult || vCalendar is null)
         {
             Log.Error("Parsing of request body text/calendar failed {errMsg}", parseResult.ErrorMessage);
-            await WriteStatusAsync(httpContext, HttpStatusCode.UnsupportedMediaType);
+            switch (parseResult.ErrorCategory)
+            {
+                case VSyntaxReader.Properties.DeserializeErrorCategory.Syntax:
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Caldav + "valid-calendar-data", parseResult.ErrorMessage);
+                    break;
+
+                case VSyntaxReader.Properties.DeserializeErrorCategory.NoContent:
+                case VSyntaxReader.Properties.DeserializeErrorCategory.WrongFormat:
+                    await WriteStatusAsync(httpContext, HttpStatusCode.UnsupportedMediaType);
+                    break;
+            }
             return;
         }
 
@@ -79,7 +89,7 @@ public partial class PostHandler : HandlerBase, IMethodHandler
         collectionObject.Collection ??= resource.Current!;
         try
         {
-            await SchedulingRepository.Put(this, httpContext, DbOperationCode.Insert, resource, collectionObject, vCalendarUnique, null);
+            await SchedulingRepository.Put(this, httpContext, DbOperationCode.Insert, resource, collectionObject, vCalendarUnique, vPreviousCalendar: null);
             return;
         }
         catch (Exception e)

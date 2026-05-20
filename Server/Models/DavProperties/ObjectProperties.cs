@@ -23,7 +23,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}/{resource.Object.Owner?.Username ?? resource.Owner.Username}/"));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -42,7 +42,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "supported-method", new XAttribute("name", method)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -53,7 +53,7 @@ public static partial class PropertiesDefinition
             {
                 if (!string.IsNullOrEmpty(resource.DavEtag)) prop.Value = $"\"{resource.DavEtag}\"";
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -67,7 +67,7 @@ public static partial class PropertiesDefinition
                     prop.Value = $"{Encoding.UTF8.GetByteCount(resource.Object.RawData)}";
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -81,7 +81,7 @@ public static partial class PropertiesDefinition
                     prop.Value = resource.Object.Modified.ToRfc2616();
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -95,7 +95,7 @@ public static partial class PropertiesDefinition
                     prop.Value = resource.Object.Created.ToRfc3339();
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -105,7 +105,7 @@ public static partial class PropertiesDefinition
             GetValue = (prop, qry, resource, ctx) =>
             {
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -117,7 +117,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Parent?.Uri ?? resource.DavName}"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
 
         return repo;

@@ -89,8 +89,18 @@ public class DeleteHandler : HandlerBase, IMethodHandler
                     if (!parseResult || vCalendar is null)
                     {
                         // TODO: Just delete and ignore error?
-                        Log.Error("Failed to parse {errMsg}", parseResult.ErrorMessage);
-                        await WriteStatusAsync(httpContext, HttpStatusCode.UnsupportedMediaType);
+                        Log.Error("Parsing of request body text/calendar failed {errMsg}", parseResult.ErrorMessage);
+                        switch (parseResult.ErrorCategory)
+                        {
+                            case VSyntaxReader.Properties.DeserializeErrorCategory.Syntax:
+                                await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Caldav + "valid-calendar-data", parseResult.ErrorMessage);
+                                break;
+
+                            case VSyntaxReader.Properties.DeserializeErrorCategory.NoContent:
+                            case VSyntaxReader.Properties.DeserializeErrorCategory.WrongFormat:
+                                await WriteStatusAsync(httpContext, HttpStatusCode.UnsupportedMediaType);
+                                break;
+                        }
                         return;
                     }
                     var vCalendarUnique = new VCalendarUnique(vCalendar);
@@ -101,7 +111,7 @@ public class DeleteHandler : HandlerBase, IMethodHandler
                         await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Caldav + "valid-calendar-object-resource", "Calendar contains multiple unrelated components");
                         return;
                     }
-                    var schedulingRequest = await SchedulingRepository.Schedule(httpContext, resource, DbOperationCode.Delete, resource.Object, vCalendarUnique, null);
+                    var schedulingRequest = await SchedulingRepository.Schedule(httpContext, resource, DbOperationCode.Delete, resource.Object, vCalendarUnique, beforeCalendar: null);
                     await ItemRepository.AmendAsync(schedulingRequest, httpContext.RequestAborted);
                 }
                 await WriteStatusAsync(httpContext, HttpStatusCode.NoContent);

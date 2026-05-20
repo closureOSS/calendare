@@ -40,7 +40,7 @@ public class ParamFilter
                 IsNotDefined = xmlIsNotDefined is not null,
                 LogicalAnd = logicalAnd,
                 VCardProperty = VCardTags.Lookup(propName.Value.ToUpperInvariant()),
-                TextMatches = PropertyFilter.ParseTextMatches(xmlParamFilter)
+                TextMatches = PropertyFilter.ParseTextMatches(xmlParamFilter),
             };
             if (pf.IsValid())
             {

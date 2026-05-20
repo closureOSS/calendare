@@ -12,19 +12,15 @@ using Microsoft.Extensions.Options;
 
 namespace Calendare.Server.Handlers;
 
-/// <summary>
-/// Implementation of the OPTIONS method.
-/// </summary>
-/// <remarks>
-/// Report a class 1 and 3 compliant CalDAV server with all enabled features
-/// </remarks>
+/// <summary>Implementation of the OPTIONS method.</summary>
+/// <remarks>Report a class 1 and 3 compliant CalDAV server with all enabled features</remarks>
 public class OptionsHandler : HandlerBase, IMethodHandler
 {
     private readonly List<string> SupportedMethods;
 
     public OptionsHandler(DavEnvironmentRepository env, RecorderSession recorder, IOptions<CaldavOptions> config) : base(env, recorder)
     {
-        SupportedMethods = [.. config.Value.Handlers.Keys.Where(x => !x.Contains('#'))];
+        SupportedMethods = [.. config.Value.Handlers.Keys.Where(x => !x.Contains('#', System.StringComparison.Ordinal))];
     }
 
     public async Task HandleRequestAsync(HttpContext httpContext, DavResource resource)

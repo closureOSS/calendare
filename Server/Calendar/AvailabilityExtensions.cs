@@ -27,7 +27,7 @@ public static class AvailabilityExtensions
         {
             return null;
         }
-        var inboxCollection = collections.First();
+        var inboxCollection = collections[0];
         var collectionRepository = httpContext.RequestServices.GetRequiredService<CollectionRepository>();
 
         var prop = await collectionRepository.GetProperty(inboxCollection, PROPERTY_calendar_availability, ct);

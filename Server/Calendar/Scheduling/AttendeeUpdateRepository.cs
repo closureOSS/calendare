@@ -47,7 +47,7 @@ public partial class SchedulingRepository
             Log.Error("TODO: Should send an error CALDAV:allowed-attendee-scheduling-object-change");
             throw new Exception("TODO: Should send an error CALDAV:allowed-attendee-scheduling-object-change");
         }
-        origin.UpdateWith(currentCalendar, false);
+        origin.UpdateWith(currentCalendar, isSignificantChange: false);
         var replyCalendar = currentCalendar.Builder.CreateCalendar();
         replyCalendar.Method = "REPLY";
         EventParticipationStatus participationStatus = EventParticipationStatus.NeedsAction;
@@ -77,7 +77,7 @@ public partial class SchedulingRepository
                 if (mcOrganizer is not null) { mcOrganizer.ScheduleStatus = ScheduleStatus.Success; } // TODO: ???
                                                                                                       // https://datatracker.ietf.org/doc/html/rfc6638#appendix-B.4
                                                                                                       // REQUEST-STATUS:2.0;Success
-                origin.UpdateWith(currentCalendar, false);
+                origin.UpdateWith(currentCalendar, isSignificantChange: false);
             }
             if (mc == currentCalendar.Reference)
             {
@@ -109,7 +109,7 @@ public partial class SchedulingRepository
         }
         if (replyCalendar.Children.Count > 0)
         {
-            origin.UpdateWith(currentCalendar, false);
+            origin.UpdateWith(currentCalendar, isSignificantChange: false);
             var inboxReply = new SchedulingItem
             {
                 Email = currentCalendar.Organizer!.Value,

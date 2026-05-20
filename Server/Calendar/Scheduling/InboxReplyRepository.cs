@@ -92,15 +92,13 @@ public partial class SchedulingRepository
                 Email = organizer.Email!,
                 Resource = organizerContext,
                 IsResolved = true,
-            }
+            },
         ];
         result.AddRange(await NotifyWithRequest(httpContext, organizerCalendar, organizer.Email!, toNotifyList?.ToArray()));
         return result;
     }
 
-    /// <summary>
-    /// Apply inbox reply to organizer scheduling object
-    /// </summary>
+    /// <summary>Apply inbox reply to organizer scheduling object</summary>
     /// <param name="organizerCalendar"></param>
     /// <param name="replyComponent"></param>
     /// <returns></returns>

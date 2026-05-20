@@ -134,6 +134,6 @@ public class CaldavUri
     private static string? EncodeSlash(string? uri)
     {
         if (uri is null) return null;
-        return uri.Contains('/') ? uri.Replace("/", "%2F") : uri;
+        return uri.Contains('/', StringComparison.Ordinal) ? uri.Replace("/", "%2F", StringComparison.Ordinal) : uri;
     }
 }

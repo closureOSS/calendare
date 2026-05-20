@@ -54,43 +54,38 @@ public partial class SchedulingRepository
                     Resource = targetContext,
                     IsResolved = true,
                     IsDelete = true,
-                }
+                },
             ];
         }
-        else
+        // cancel one or more occurrences -> UPDATE existing
+        //
+        if (targetCalendar.Reference is null)
         {
-            // cancel one or more occurrences -> UPDATE existing
-            //
-            if (targetCalendar.Reference is null)
-            {
-                // we are invited to just some occurrences -> and now delete them ...
-                return [
-                    new SchedulingItem
+            // we are invited to just some occurrences -> and now delete them ...
+            return [
+                new SchedulingItem
                     {
                         Calendar = targetCalendar.Calendar,
                         Email = targetAttendee.Email!,
                         Resource = targetContext,
                         IsResolved = true,
                         IsDelete = true,
-                    }
+                    },
                 ];
-            }
-            else
-            {
-                // - OR - we are invited to all occurrences (possibly with exceptions) --> now add more exceptions
-                var exceptionDates = cancelCalendar.EnumOccurrences().Select(c => c.RecurrenceId!).ToList();
-                targetCalendar.Reference?.ExceptionDates.AddRange(exceptionDates);
-                targetCalendar.Calendar.RemoveChildren<RecurringComponent>(rc => rc.Uid is not null && rc.RecurrenceId is not null && exceptionDates.Contains(rc.RecurrenceId));
-                return [
-                    new SchedulingItem
-                {
+        }
+        // - OR - we are invited to all occurrences (possibly with exceptions) --> now add more exceptions
+        var exceptionDates = cancelCalendar.EnumOccurrences().Select(c => c.RecurrenceId!).ToList();
+        targetCalendar.Reference?.ExceptionDates.AddRange(exceptionDates);
+        targetCalendar.Calendar.RemoveChildren<RecurringComponent>(rc => rc.Uid is not null && rc.RecurrenceId is not null && exceptionDates.Contains(rc.RecurrenceId));
+        return [
+            new SchedulingItem
+                    {
                     Calendar = targetCalendar.Calendar,
                     Email = targetAttendee.Email!,
                     Resource = targetContext,
                     IsResolved = true,
-                }
-                ];
-            }
-        }
+                    },
+            ];
+
     }
 }

@@ -85,7 +85,7 @@ public static partial class PropertiesDefinition
                 }
                 resource.Current.Description = null;
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -118,7 +118,7 @@ public static partial class PropertiesDefinition
                 }
                 resource.Current.Color = null;
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -155,7 +155,7 @@ public static partial class PropertiesDefinition
                 }
                 resource.Current.OrderBy = null;
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
 
         repo.Register(new DavProperty
@@ -187,7 +187,7 @@ public static partial class PropertiesDefinition
                 }
                 resource.Current.Description = null;
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -220,7 +220,7 @@ public static partial class PropertiesDefinition
                 }
                 resource.Current.Description = null;
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -235,7 +235,7 @@ public static partial class PropertiesDefinition
                     prop.Value = resource.Current.Created.ToRfc3339();
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -249,7 +249,7 @@ public static partial class PropertiesDefinition
                     prop.Value = resource.Current.Modified.ToRfc2616();
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -260,7 +260,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Value = "httpd/unix-directory";
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -274,7 +274,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}/{resource.Current.Owner.Username}/"));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -298,7 +298,7 @@ public static partial class PropertiesDefinition
                         break;
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -312,7 +312,7 @@ public static partial class PropertiesDefinition
                 // TODO: Add support in Admin UI to select an address VCARD
                 // prop.Add(new XElement(XmlNamespaces.DavNs + "href", "???/principal.vcf"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -370,7 +370,7 @@ public static partial class PropertiesDefinition
                     resourcetypes.Add($"<{rt.Name.Namespace}:{rt.Name.LocalName}/>");
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -384,7 +384,7 @@ public static partial class PropertiesDefinition
                     prop.Value = $"\"{resource.Current.Etag}\"";
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -399,7 +399,7 @@ public static partial class PropertiesDefinition
                     prop.Value = $"\"{resource.Current.Etag}\"";
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
 
         repo.Register(new DavProperty
@@ -418,7 +418,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "supported-method", new XAttribute("name", method)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -431,7 +431,7 @@ public static partial class PropertiesDefinition
                 // radicale doesn't support principal-* and expand-property reports, but returns an empty result
                 prop.AddSupportedReports(CommonReports);
                 prop.AddSupportedReports([
-                    XmlNs.Dav + "acl-principal-prop-set"
+                    XmlNs.Dav + "acl-principal-prop-set",
                 ]);
                 if (resource.Current?.CollectionSubType == CollectionSubType.SchedulingInbox)
                 {
@@ -456,7 +456,7 @@ public static partial class PropertiesDefinition
                     ]);
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -491,7 +491,7 @@ public static partial class PropertiesDefinition
                         return Task.FromResult(PropertyUpdateResult.BadRequest);
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -662,7 +662,7 @@ public static partial class PropertiesDefinition
                 }
                 Log.Warning("Invalid timezone id {tzId}", prop.Value);
                 return Task.FromResult(PropertyUpdateResult.BadRequest);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -676,7 +676,7 @@ public static partial class PropertiesDefinition
                 // TODO: Investigate to implement timezone service and discovery, current URI is a placeholder [low priority]
                 prop.Add(new XElement(XmlNs.Dav + "href", $"https://calendare.closure.ch/timezones"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -939,7 +939,7 @@ public static partial class PropertiesDefinition
                 prop.Add(new XElement(XmlNs.CalenderServer + "can-be-shared"));
                 prop.Add(new XElement(XmlNs.CalenderServer + "can-be-published"));
                 return PropertyUpdateResult.Success;
-            }
+            },
         });
 
         repo.Register(new DavProperty

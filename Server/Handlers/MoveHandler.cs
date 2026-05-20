@@ -49,10 +49,10 @@ public partial class MoveHandler : HandlerBase, IMethodHandler
             await WriteStatusAsync(httpContext, HttpStatusCode.BadRequest, "More than one destination given");
             return;
         }
-        var destination = destinations.First()!;
+        var destination = destinations[0]!;
         if (destination.Contains(':', StringComparison.Ordinal))
         {
-            var destinationUri = new Uri(destinations.First()!);
+            var destinationUri = new Uri(destinations[0]!);
             destination = destinationUri.AbsolutePath;
         }
         if (PathBase is not null && destination.StartsWith(PathBase, StringComparison.Ordinal))

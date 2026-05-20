@@ -33,7 +33,7 @@ public class AclPrincipalPropSetReport : ReportBase, IReport
         }
         var principals = new HashSet<Models.Principal>
         {
-            resource.CurrentUser
+            resource.CurrentUser,
         };
         var userRepository = httpContext.RequestServices.GetRequiredService<UserRepository>();
         var propertyRegistry = httpContext.RequestServices.GetRequiredService<DavPropertyRepository>();

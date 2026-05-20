@@ -25,7 +25,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -36,7 +36,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Owner.Uri}"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -58,7 +58,7 @@ public static partial class PropertiesDefinition
                     return Task.FromResult(PropertyUpdateResult.NotFound);
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -75,7 +75,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}/"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -91,7 +91,7 @@ public static partial class PropertiesDefinition
             },
             Matches = (resource, searchTerm) =>
             {
-                return $"{resource.PathBase}{resource.Owner.Uri}".Contains(searchTerm ?? "");
+                return $"{resource.PathBase}{resource.Owner.Uri}".Contains(searchTerm ?? "", StringComparison.Ordinal);
             },
         });
         repo.Register(new DavProperty
@@ -106,7 +106,7 @@ public static partial class PropertiesDefinition
             },
             Matches = (resource, searchTerm) =>
             {
-                return $"{resource.PathBase}{resource.Owner.Uri}".Contains(searchTerm ?? "");
+                return $"{resource.PathBase}{resource.Owner.Uri}".Contains(searchTerm ?? "", StringComparison.Ordinal);
             },
         });
         repo.Register(new DavProperty
@@ -140,13 +140,13 @@ public static partial class PropertiesDefinition
                     return false;
                 }
                 var st = searchTerm ?? "";
-                if ($"{resource.PathBase}{principal.Uri}".Contains(st))
+                if ($"{resource.PathBase}{principal.Uri}".Contains(st, StringComparison.Ordinal))
                 {
                     return true;
                 }
                 if (!string.IsNullOrEmpty(principal.Email) && principal.EmailOk is not null)
                 {
-                    return $"mailto:{principal.Email}".Contains(st);
+                    return $"mailto:{principal.Email}".Contains(st, StringComparison.Ordinal);
                 }
                 return false;
             },
@@ -183,13 +183,13 @@ public static partial class PropertiesDefinition
                     return false;
                 }
                 var st = searchTerm ?? "";
-                if ($"{resource.PathBase}{principal.Uri}".Contains(st))
+                if ($"{resource.PathBase}{principal.Uri}".Contains(st, StringComparison.Ordinal))
                 {
                     return true;
                 }
                 if (!string.IsNullOrEmpty(principal.Email) && principal.EmailOk is not null)
                 {
-                    return $"mailto:{principal.Email}".Contains(st);
+                    return $"mailto:{principal.Email}".Contains(st, StringComparison.Ordinal);
                 }
                 return false;
             },
@@ -249,7 +249,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{outbox.Uri}"));
                 }
                 return PropertyUpdateResult.Success;
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -270,7 +270,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{inbox.Uri}"));
                 }
                 return PropertyUpdateResult.Success;
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -309,7 +309,7 @@ public static partial class PropertiesDefinition
                 var supportedPrivilegeSet = PrivilegesDefinitions.LoadTree();
                 prop.WritePrivilegeSet(supportedPrivilegeSet);
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -325,7 +325,7 @@ public static partial class PropertiesDefinition
                         new XElement(XmlNs.Dav + "owner")
                 )));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -335,7 +335,7 @@ public static partial class PropertiesDefinition
             GetValue = (prop, qry, resource, ctx) =>
             {
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -364,7 +364,7 @@ public static partial class PropertiesDefinition
                         Grantee = resource.Owner,
                         Privileges = PrivilegeMask.All,
                         Name = XmlNs.Dav + "owner",
-                    }
+                    },
                 };
                 var userRepository = ctx.RequestServices.GetRequiredService<UserRepository>();
                 var relationships = await userRepository.GetPrivilegesGrantedToAsync(resource, transitive: false, ctx.RequestAborted);
@@ -405,7 +405,7 @@ public static partial class PropertiesDefinition
                     prop.Add(xmlAce);
                 }
                 return PropertyUpdateResult.Success;
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -429,7 +429,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "privilege", new XElement(grant.Id)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -450,7 +450,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "href", member));
                 }
                 return PropertyUpdateResult.Success;
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -471,7 +471,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "href", member));
                 }
                 return PropertyUpdateResult.Success;
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -579,7 +579,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{group.GroupUri}"));
                 }
                 return PropertyUpdateResult.Success;
-            }
+            },
         },
         XmlNs.CalenderServer + "group-membership");
 
@@ -626,7 +626,7 @@ public static partial class PropertiesDefinition
                     }
                 }
                 return PropertyUpdateResult.Success;
-            }
+            },
         },
         XmlNs.CalenderServer + "invite");
 
@@ -646,7 +646,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "shared-owner"));   // TODO: Implement other states (not-shared|shared-owner|read|read-write)
                 }
                 return PropertyUpdateResult.Success;
-            }
+            },
         },
         XmlNs.CalenderServer + "share-access");
 

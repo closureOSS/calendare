@@ -59,7 +59,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(CollectionNames.ProxyWrite));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -78,7 +78,7 @@ public static partial class PropertiesDefinition
                     prop.Add(new XElement(XmlNs.Dav + "supported-method", new XAttribute("name", method)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -90,7 +90,7 @@ public static partial class PropertiesDefinition
                 var principal = resource.Owner;// TODO: HACK REPLACE
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{principal.Uri}"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -106,7 +106,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.Notifications}/"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         }, XmlNs.CalenderServer + "notification-URL");
         repo.Register(new DavProperty
         {
@@ -117,7 +117,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.DefaultCalendar}/"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -128,7 +128,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.DefaultAddressbook}/"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -139,7 +139,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.DefaultCalendar}/"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -150,7 +150,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.DefaultCalendar}/"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
 
         return repo;

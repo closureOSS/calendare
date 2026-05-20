@@ -98,7 +98,7 @@ try
         c.SwaggerDoc("v1", new OpenApiInfo
         {
             Title = "Calendare Server",
-            Version = GitVersionInformation.SemVer,
+            Version = GitVersionInformation.MajorMinorPatch,
             Description = "Administration API for the Calendare Server",
             Contact = new OpenApiContact
             {

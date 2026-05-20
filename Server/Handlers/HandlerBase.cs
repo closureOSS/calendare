@@ -45,13 +45,10 @@ public abstract class HandlerBase
     public async Task WriteErrorXmlAsync(HttpContext httpContext, HttpStatusCode httpStatusCode, XName errorName, string? comment = null)
     {
         var (xmlDoc, xmlError) = HandlerExtensions.CreateErrorDocument();
-        if (string.IsNullOrEmpty(comment))
+        xmlError.Add(new XElement(errorName));
+        if (!string.IsNullOrEmpty(comment))
         {
-            xmlError.Add(new XElement(errorName));
-        }
-        else
-        {
-            xmlError.Add(new XElement(errorName), comment);
+            xmlError.Add(new XElement(XmlNs.Dav + "responsedescription", comment));
         }
         await httpContext.Response.BodyXmlAsync(xmlDoc, httpStatusCode, httpContext.RequestAborted);
         Recorder.SetResponseBody(xmlDoc);

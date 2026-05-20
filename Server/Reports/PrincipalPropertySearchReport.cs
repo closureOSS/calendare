@@ -96,7 +96,7 @@ public class PrincipalPropertySearchReport : ReportBase, IReport
                     continue;
                 }
             }
-            var xmlResponse = await HandlerExtensions.PropertyResponse(propertyRegistry, principal, null, properties, httpContext);
+            var xmlResponse = await HandlerExtensions.PropertyResponse(propertyRegistry, principal, href: null, properties, httpContext);
             xmlMultistatus.Add(xmlResponse);
         }
         return new(xmlDoc);

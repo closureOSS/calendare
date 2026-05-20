@@ -87,7 +87,7 @@ public class PrincipalRepository
         {
             sql = sql.AsNoTrackingWithIdentityResolution();
         }
-        return sql;
+        return sql.AsSingleQuery();
     }
 
     public async Task<Models.Principal?> GetCurrentUserPrincipalAsync(IIdentity? identity, CancellationToken ct)
@@ -100,7 +100,7 @@ public class PrincipalRepository
         {
             AuthenticationTypes.Basic => CredentialTypes.Password,
             AuthenticationTypes.JwtBearer => CredentialTypes.JwtBearer,
-            _ => CredentialTypes.Password
+            _ => CredentialTypes.Password,
         };
         var usr = await Db.Usr
             .Include(usr => usr.Credentials.Where(cred => cred.Accesskey == identity.Name))

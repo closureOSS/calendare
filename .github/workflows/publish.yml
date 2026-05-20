@@ -60,8 +60,8 @@ jobs:
           IMAGE_NAME: "calendare-server"
           ContainerImageTags: >-
             ${{ steps.meta.outputs.PreReleaseLabel != ''
-                && format('{0};{1};{2}', steps.meta.outputs.SemVer, steps.meta.outputs.MajorMinorPath, steps.meta.outputs.InformationalVersion)
-                || format('{0};{1}.{2};{3};latest', steps.meta.outputs.SemVer, steps.meta.outputs.Major, steps.meta.outputs.Minor, steps.meta.outputs.InformationalVersion)
+                && format('{0};{1};{2};{3}', steps.meta.outputs.SemVer, steps.meta.outputs.MajorMinorPatch, steps.meta.outputs.AssemblySemFileVer, steps.meta.outputs.InformationalVersion)
+                || format('{0};{1};{2};{3};latest', steps.meta.outputs.SemVer, steps.meta.outputs.MajorMinorPatch, steps.meta.outputs.AssemblySemFileVer, steps.meta.outputs.InformationalVersion)
             }}
         run: |
           dotnet publish --os linux --arch x64 /t:PublishContainer \
@@ -87,12 +87,12 @@ jobs:
           # sbom: true
           build-args: |
             BUILD_DATE=${{ steps.meta.outputs.CommitDate }}
-            SEMVER2=${{ steps.meta.outputs.SemVer }}
+            SEMVER=${{ steps.meta.outputs.SemVer }}
           tags: |
             ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:latest
             ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.SemVer }}
             ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.MajorMinorPatch }}
-            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.Major }}.${{ steps.meta.outputs.Minor }}
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.AssemblySemFileVer }}
             ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.InformationalVersion }}
 
       - name: Build and push database migration container image (pre-release)
@@ -105,10 +105,11 @@ jobs:
           # sbom: true
           build-args: |
             BUILD_DATE=${{ steps.meta.outputs.CommitDate }}
-            SEMVER2=${{ steps.meta.outputs.SemVer }}
+            SEMVER=${{ steps.meta.outputs.SemVer }}
           tags: |
             ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.SemVer }}
             ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.MajorMinorPatch }}
+            ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.AssemblySemFileVer }}
             ${{ env.REGISTRY }}/${{ steps.repoinfo.outputs.repository_lc }}/calendare-migration:${{ steps.meta.outputs.InformationalVersion }}
 
       - name: Get chart name

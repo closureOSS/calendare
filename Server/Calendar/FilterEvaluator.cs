@@ -143,11 +143,8 @@ public class FilterEvaluator
                     }
                     return anyMatch;
                 }
-                else
-                {
-                    Log.Error("Failed to parse {id} {errMsg}", co.Id, parseResult.ErrorMessage);
-                    return false;
-                }
+                Log.Error("Failed to parse {id} {errMsg}", co.Id, parseResult.ErrorMessage);
+                return false;
             }
         }
         return true;

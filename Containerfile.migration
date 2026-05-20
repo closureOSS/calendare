@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-azurelinux3.0-distroless-amd64
 
 ARG BUILD_DATE
-ARG SEMVER2
+ARG SEMVER
 
 LABEL org.opencontainers.image.authors="rob@slgm.ch" \
       org.opencontainers.image.created="${BUILD_DATE}" \
-      org.opencontainers.image.version="${SEMVER2}"
+      org.opencontainers.image.version="${SEMVER}"
 
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 

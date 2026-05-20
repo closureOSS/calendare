@@ -60,7 +60,17 @@ public partial class PutHandler : IMethodHandler
         if (!parseResult || vCalendar is null)
         {
             Log.Error("Parsing of request body text/calendar failed {errMsg}", parseResult.ErrorMessage);
-            await WriteStatusAsync(httpContext, HttpStatusCode.UnsupportedMediaType);
+            switch (parseResult.ErrorCategory)
+            {
+                case VSyntaxReader.Properties.DeserializeErrorCategory.Syntax:
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Caldav + "valid-calendar-data", parseResult.ErrorMessage);
+                    break;
+
+                case VSyntaxReader.Properties.DeserializeErrorCategory.NoContent:
+                case VSyntaxReader.Properties.DeserializeErrorCategory.WrongFormat:
+                    await WriteStatusAsync(httpContext, HttpStatusCode.UnsupportedMediaType);
+                    break;
+            }
             return;
         }
         var vCalendarUnique = new VCalendarUnique(vCalendar);

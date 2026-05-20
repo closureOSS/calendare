@@ -28,7 +28,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Value = MimeContentTypes.VCard;
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -41,7 +41,7 @@ public static partial class PropertiesDefinition
             {
                 if (resource.Object is not null && resource.Object.RawData is not null) prop.Value = resource.Object.RawData;
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -54,10 +54,10 @@ public static partial class PropertiesDefinition
                 prop.AddSupportedReports(CommonReports);
                 prop.AddSupportedReports([
                     XmlNs.Caldav + "addressbook-query",
-                    XmlNs.Caldav + "addressbook-multiget"
+                    XmlNs.Caldav + "addressbook-multiget",
                 ]);
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         return repo;
     }

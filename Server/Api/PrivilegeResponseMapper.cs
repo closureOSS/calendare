@@ -15,7 +15,7 @@ public static partial class PrivilegeResponseMapper
         var grantTypes = staticDataRepository.RelationshipTypeList.Values;
         var result = new PrivilegeResponse
         {
-            GrantedTo = !reverse
+            GrantedTo = !reverse,
         };
         if (result.GrantedTo)
         {

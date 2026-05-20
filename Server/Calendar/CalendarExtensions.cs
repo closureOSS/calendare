@@ -104,7 +104,7 @@ public static class CalendarExtensions
         }
         else
         {
-            target.Uid = resource.Uri?.ItemName?.Replace(".ics", "") ?? $"{Guid.NewGuid()}";
+            target.Uid = resource.Uri?.ItemName?.Replace(".ics", "", StringComparison.OrdinalIgnoreCase) ?? $"{Guid.NewGuid()}";
             Log.Warning("Autocorrecting malformed VObject {davName} with missing UID, new UID {uid}", resource.DavName, target.Uid);
         }
 

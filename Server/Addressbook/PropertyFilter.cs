@@ -49,7 +49,7 @@ public class PropertyFilter
                 LogicalAnd = logicalAnd,
                 VCardProperty = VCardTags.Lookup(propName.Value.ToUpperInvariant()),
                 TextMatches = ParseTextMatches(xmlPropFilter),
-                ParamFilters = ParamFilter.Parse(xmlPropFilter.Elements(XmlNs.Carddav + "param-filter"))
+                ParamFilters = ParamFilter.Parse(xmlPropFilter.Elements(XmlNs.Carddav + "param-filter")),
             };
             if (pf.IsValid())
             {

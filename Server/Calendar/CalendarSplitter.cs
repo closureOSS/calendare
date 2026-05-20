@@ -58,7 +58,7 @@ public class CalendarSplitter
                 Uid = mainComponent.Uid ?? throw new ArgumentException("Uid is null", nameof(vCalendar)),
                 VObjectType = mainComponent.Name,
             };
-            collectionObject.UpdateWith(groupedCalendar, true);
+            collectionObject.UpdateWith(groupedCalendar, isSignificantChange: true);
             mainComponent.ReadCommonProperties(collectionObject);
             result.Add(collectionObject);
         }

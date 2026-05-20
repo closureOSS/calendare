@@ -107,8 +107,11 @@ public class AclHandler : HandlerBase, IMethodHandler
             }
             else
             {
-                var xmlProperty = xmlPrincipal.Element(XmlNs.Dav + "property");
-                if (xmlProperty is not null)
+                /*
+                <!ELEMENT principal (href | all | authenticated | unauthenticated | property | self)>
+                */
+#pragma warning disable MA0071 // Avoid using redundant else
+                if (xmlPrincipal.Element(XmlNs.Dav + "property") is { } xmlProperty)
                 {
                     if (xmlProperty.FirstNode is not null)
                     {
@@ -144,6 +147,7 @@ public class AclHandler : HandlerBase, IMethodHandler
                     Log.Warning("Principal not defined");
                     return default;
                 }
+#pragma warning restore MA0071 // Avoid using redundant else
             }
             var xmlGrant = xmlAce.Element(XmlNs.Dav + "grant");
             var xmlDeny = xmlAce.Element(XmlNs.Dav + "deny");

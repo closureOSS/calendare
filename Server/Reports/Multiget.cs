@@ -44,7 +44,7 @@ public class MultigetReport : ReportBase, IReport
                 }
                 if (resource is not null)
                 {
-                    var xmlProperty = await HandlerExtensions.PropertyResponse(propertyRegistry, resource, null, properties, httpContext);
+                    var xmlProperty = await HandlerExtensions.PropertyResponse(propertyRegistry, resource, href: null, properties, httpContext);
                     xmlMultistatus.Add(xmlProperty);
                 }
             }

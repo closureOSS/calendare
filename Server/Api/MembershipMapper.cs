@@ -65,11 +65,11 @@ public static class MembershipMapper
         {
             return MembershipPrivilegeType.Unassigned;
         }
-        if (uri.Contains(CollectionUris.CalendarProxyWrite))
+        if (uri.Contains(CollectionUris.CalendarProxyWrite, System.StringComparison.OrdinalIgnoreCase))
         {
             return MembershipPrivilegeType.ProxyWrite;
         }
-        else if (uri.Contains(CollectionUris.CalendarProxyRead))
+        if (uri.Contains(CollectionUris.CalendarProxyRead, System.StringComparison.OrdinalIgnoreCase))
         {
             return MembershipPrivilegeType.ProxyRead;
         }

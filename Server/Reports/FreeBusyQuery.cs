@@ -88,12 +88,12 @@ public class FreeBusyQueryReport : ReportBase, IReport
             var now = SystemClock.Instance.GetCurrentInstant();
             return new Interval(now.Plus(Duration.FromDays(-safeDays)), now.Plus(Duration.FromDays(safeDays)));
         }
-        else if (!evalRange.HasEnd)
+        if (!evalRange.HasEnd)
         {
             // open ended
             return new Interval(evalRange.Start, evalRange.Start.Plus(Duration.FromDays(safeDays)));
         }
-        else if (!evalRange.HasStart)
+        if (!evalRange.HasStart)
         {
             // no start
             return new Interval(evalRange.End.Plus(Duration.FromDays(-safeDays)), evalRange.End);

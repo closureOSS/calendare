@@ -10,5 +10,5 @@ public enum RelationshipTypes
     Administers,
     ReadWrite,
     Read,
-    Freebusy
+    Freebusy,
 }

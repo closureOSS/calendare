@@ -10,9 +10,7 @@ public class PermissionResponse
     public CollectionSubType CollectionSubType { get; set; } = CollectionSubType.Default;
     public PrincipalType? PrincipalType { get; set; }
 
-    /// <summary>
-    /// Users current privileges on object
-    /// </summary>
+    /// <summary>Users current privileges on object</summary>
     public PrivilegeMask Permissions { get; set; }
 
     public PrivilegeMask GlobalPermitSelf { get; set; }
@@ -28,8 +26,6 @@ public class PermissionResponse
     /// </summary>
     public PrivilegeMask Administration { get; set; }
 
-    /// <summary>
-    /// Identifies the root administrator (id 1)
-    /// </summary>
+    /// <summary>Identifies the root administrator (id 1)</summary>
     public bool? IsRoot { get; set; }
 }

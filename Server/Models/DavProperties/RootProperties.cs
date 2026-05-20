@@ -18,7 +18,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Value = "Calendare Server";
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -29,7 +29,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Add(new XElement(XmlNs.Dav + "collection"));
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         // repo.Register(new DavProperty
         // {
@@ -58,13 +58,13 @@ public static partial class PropertiesDefinition
             GetValue = (prop, qry, resource, ctx) =>
             {
                 foreach (var method in new string[] {
-                    "OPTIONS","PROPFIND","REPORT"
+                    "OPTIONS","PROPFIND","REPORT",
                 })
                 {
                     prop.Add(new XElement(XmlNs.Dav + "supported-method", new XAttribute("name", method)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -74,7 +74,7 @@ public static partial class PropertiesDefinition
             GetValue = (prop, qry, resource, ctx) =>
             {
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         return repo;
     }

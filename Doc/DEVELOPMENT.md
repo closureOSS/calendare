@@ -5,7 +5,7 @@ Development on Windows with the NET SDK installed.
 ## Build Server
 
 ```shell
-dotnet publish --os linux --arch x64 /t:PublishContainer /p:ContainerImageTags=`"$(nbgv get-version -v SemVer2)`;$(nbgv get-version -v MajorMinorVersion)`;$(nbgv get-version -v Version)`;latest`" -p ContainerRegistry=registry.example.com
+dotnet publish --os linux --arch x64 /t:PublishContainer /p:ContainerImageTags=`"$(dotnet gitversion /showvariable SemVer)`;$(dotnet gitversion /showvariable MajorMinorPatch)`;$(dotnet gitversion /showvariable InformationalVersion)`;latest`" -p ContainerRegistry=registry.example.com
 ```
 
 The registry credentials need to be in ~/.docker/config.json.
@@ -45,8 +45,8 @@ helm registry login registry.example.com
 While standing in the root directory (parent directory of subdirectory `deploy`) create and push helm package with
 
 ```shell
-helm package --app-version "$(nbgv get-version -v SemVer2)" --version "$(nbgv get-version -v SemVer2)" .\deploy\
-helm push .\calendare-server-$(nbgv get-version -v SemVer2).tgz oci://registry.example.com/helm
+helm package --app-version "$(dotnet gitversion /showvariable SemVer)" --version "$(dotnet gitversion /showvariable SemVer)" .\deploy\
+helm push .\calendare-server-$(dotnet gitversion /showvariable SemVer).tgz oci://registry.example.com/helm
 helm show values oci://registry.example.com/helm/calendare
 ```
 

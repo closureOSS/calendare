@@ -44,63 +44,60 @@ public class SyncCollectionReport : ReportBase, IReport
         {
             return await SyncCollectionV1(xmlRequestDoc, resource, propertyRegistry, properties, httpContext, env);
         }
-        else
+        var contexts = new List<DavResource>();
+        switch (resource.ResourceType)
         {
-            var contexts = new List<DavResource>();
-            switch (resource.ResourceType)
+            case DavResourceType.Root:
+                contexts.AddRange(await ResourceRepository.ListPrincipalsAsResourceAsync(resource, onlySelf: true, httpContext.RequestAborted));
+                break;
+            case DavResourceType.Principal:
+            case DavResourceType.Container:
+                contexts.AddRange(await ResourceRepository.ListChildrenAsResourcesAsync(resource, httpContext.RequestAborted));
+                break;
+            default:
+                Log.Error("Resource type {resourceType} not supported in this report", resource.ResourceType);
+                break;
+        }
+        var (xmlDoc, xmlMultistatus) = HandlerExtensions.CreateMultistatusDocument();
+        foreach (var ctx in contexts)
+        {
+            var exists = ctx.VerifyResourceType();
+            switch (ctx.ResourceType)
             {
-                case DavResourceType.Root:
-                    contexts.AddRange(await ResourceRepository.ListPrincipalsAsResourceAsync(resource, true, httpContext.RequestAborted));
-                    break;
                 case DavResourceType.Principal:
                 case DavResourceType.Container:
-                    contexts.AddRange(await ResourceRepository.ListChildrenAsResourcesAsync(resource, httpContext.RequestAborted));
+                case DavResourceType.Calendar:
+                case DavResourceType.Addressbook:
                     break;
-                default:
-                    Log.Error("Resource type {resourceType} not supported in this report", resource.ResourceType);
-                    break;
-            }
-            var (xmlDoc, xmlMultistatus) = HandlerExtensions.CreateMultistatusDocument();
-            foreach (var ctx in contexts)
-            {
-                var exists = ctx.VerifyResourceType();
-                switch (ctx.ResourceType)
-                {
-                    case DavResourceType.Principal:
-                    case DavResourceType.Container:
-                    case DavResourceType.Calendar:
-                    case DavResourceType.Addressbook:
-                        break;
 
-                    default:
-                    case DavResourceType.Unknown:
-                    case DavResourceType.Root:
-                    case DavResourceType.User:
-                    case DavResourceType.CalendarItem:
-                    case DavResourceType.AddressbookItem:
-                        exists = false;
-                        break;
-                }
-                if (exists)
-                {
-                    var xmlResponse = await HandlerExtensions.PropertyResponse(propertyRegistry, ctx, null, properties, httpContext);
-                    xmlMultistatus.Add(xmlResponse);
-                }
-                else
-                {
-                    var xmlResponse = new XElement(XmlNs.Dav + "response",
-                                        new XElement(XmlNs.Dav + "href", $"{PathBase}{ctx.DavName}"),
-                                        new XElement(XmlNs.Dav + "status", "HTTP/1.1 404 Not Found")
-                                    );
-                    // TODO: DAV:error missing https://datatracker.ietf.org/doc/html/rfc6578#section-3.2
-                    xmlMultistatus.Add(xmlResponse);
-                }
+                default:
+                case DavResourceType.Unknown:
+                case DavResourceType.Root:
+                case DavResourceType.User:
+                case DavResourceType.CalendarItem:
+                case DavResourceType.AddressbookItem:
+                    exists = false;
+                    break;
             }
-            var newToken = SyncToken.Sentinel;
-            var xmlSyncToken = new XElement(XmlNs.Dav + "sync-token", newToken.Uri);
-            xmlMultistatus.Add(xmlSyncToken);
-            return new(xmlDoc);
+            if (exists)
+            {
+                var xmlResponse = await HandlerExtensions.PropertyResponse(propertyRegistry, ctx, href: null, properties, httpContext);
+                xmlMultistatus.Add(xmlResponse);
+            }
+            else
+            {
+                var xmlResponse = new XElement(XmlNs.Dav + "response",
+                                    new XElement(XmlNs.Dav + "href", $"{PathBase}{ctx.DavName}"),
+                                    new XElement(XmlNs.Dav + "status", "HTTP/1.1 404 Not Found")
+                                );
+                // TODO: DAV:error missing https://datatracker.ietf.org/doc/html/rfc6578#section-3.2
+                xmlMultistatus.Add(xmlResponse);
+            }
         }
+        var newToken = SyncToken.Sentinel;
+        var xmlSyncToken = new XElement(XmlNs.Dav + "sync-token", newToken.Uri);
+        xmlMultistatus.Add(xmlSyncToken);
+        return new(xmlDoc);
     }
 
     private async Task<ReportResponse> SyncCollectionV1(XDocument xmlRequestDoc, DavResource baseResource, DavPropertyRepository propertyRegistry, List<DavPropertyRef> properties, HttpContext httpContext, DavEnvironmentRepository env)

@@ -27,7 +27,7 @@ public partial class SchedulingRepository
                 {
                     continue;   // send just one CANCEL to attendee
                 }
-                var inboxRequest = await CreateCancelForAttendee(httpContext, attendee, organizerPrincipal, ce, true);
+                var inboxRequest = await CreateCancelForAttendee(httpContext, attendee, organizerPrincipal, ce, cancelAll: true);
                 if (inboxRequest is not null)
                 {
                     result.Add(inboxRequest);

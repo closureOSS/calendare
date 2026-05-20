@@ -20,7 +20,7 @@ public static partial class PropertiesDefinition
             {
                 prop.Value = "httpd/unix-directory";
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         // TODO: Investigate if non-standard ctag is used (or just use etag anyway) by clients
         repo.Register(new DavProperty
@@ -48,7 +48,7 @@ public static partial class PropertiesDefinition
                 // TODO: Implement updating principal type (i.e. ROOM, RESOURCE, INDIVIDUAL)
                 //       Some constraints may apply
                 return Task.FromResult(PropertyUpdateResult.Ignore);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -60,10 +60,10 @@ public static partial class PropertiesDefinition
             {
                 prop.AddSupportedReports(CommonReports);
                 prop.AddSupportedReports([
-                    XmlNs.Dav + "acl-principal-prop-set"
+                    XmlNs.Dav + "acl-principal-prop-set",
                 ]);
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
         repo.Register(new DavProperty
         {
@@ -87,7 +87,7 @@ public static partial class PropertiesDefinition
             {
                 collection.Description = null;
                 return Task.FromResult(PropertyUpdateResult.Success);
-            }
+            },
         });
 
         return repo;

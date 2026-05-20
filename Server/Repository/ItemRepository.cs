@@ -262,7 +262,7 @@ public partial class ItemRepository
             CollectionId = data.CollectionId,
             CollectionObjectId = data.Id,
             Uri = data.Uri,
-            IsDeleted = false
+            IsDeleted = false,
         };
     }
 
@@ -282,7 +282,7 @@ public partial class ItemRepository
             CollectionId = data.CollectionId,
             CollectionObjectId = data.Id,
             Uri = data.Uri,
-            IsDeleted = true
+            IsDeleted = true,
         };
     }
 
@@ -296,7 +296,7 @@ public partial class ItemRepository
             CollectionId = data.CollectionId,
             CollectionObjectId = data.Id,
             Uri = data.Uri,
-            IsDeleted = false
+            IsDeleted = false,
         })], ct);
 
         return await Db.SaveChangesAsync(ct);
@@ -327,7 +327,7 @@ public partial class ItemRepository
             CollectionId = data.CollectionId,
             CollectionObjectId = isDelete ? null : data.Id,
             Uri = data.Uri,
-            IsDeleted = isDelete
+            IsDeleted = isDelete,
         }], ct);
     }
 
@@ -349,7 +349,7 @@ public partial class ItemRepository
         var existing = await Db.CollectionObject.FirstOrDefaultAsync(co => co.Uri == uri && co.Deleted == null, ct);
         if (existing is not null)
         {
-            await TrackSyncChanges(existing, true, ct);
+            await TrackSyncChanges(existing, isDelete: true, ct);
             Db.CollectionObject.Remove(existing);
 
             await Db.SaveChangesAsync(ct);

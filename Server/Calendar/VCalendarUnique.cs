@@ -132,7 +132,7 @@ public class VCalendarUnique
                     return null;
                 }
                 attendee ??= occ.Attendees.Value[0];
-                if (attendee is not null && !attendee.Value.Equals(occ.Attendees.Value[0].Value))
+                if (attendee is not null && !attendee.Value.Equals(occ.Attendees.Value[0].Value, StringComparison.Ordinal))
                 {
                     return null;
                 }

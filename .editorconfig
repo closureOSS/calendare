@@ -156,3 +156,8 @@ dotnet_diagnostic.MA0048.severity = none
 dotnet_diagnostic.MA0051.severity = none
 # Avoid comparison with bool constant
 dotnet_diagnostic.MA0073.severity = none
+# Pattern matching for discrete value
+dotnet_diagnostic.MA0148.severity = none
+dotnet_diagnostic.MA0149.severity = none
+# Record should use explicit 'class' keyword
+dotnet_diagnostic.MA0174.severity = none

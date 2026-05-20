@@ -25,14 +25,14 @@ public class PrincipalMatchReport : ReportBase, IReport
             return new(HttpStatusCode.BadRequest);
         }
         var resourceRepository = httpContext.RequestServices.GetRequiredService<ResourceRepository>();
-        var principal = (await resourceRepository.ListPrincipalsAsResourceAsync(resource, true, httpContext.RequestAborted)).FirstOrDefault();
+        var principal = (await resourceRepository.ListPrincipalsAsResourceAsync(resource, onlySelf: true, httpContext.RequestAborted)).FirstOrDefault();
         if (principal is null)
         {
             return new(HttpStatusCode.NotFound);
         }
         var propertyRegistry = httpContext.RequestServices.GetRequiredService<DavPropertyRepository>();
         var (xmlDoc, xmlMultistatus) = HandlerExtensions.CreateMultistatusDocument();
-        var xmlResponse = await HandlerExtensions.PropertyResponse(propertyRegistry, principal, null, properties, httpContext);
+        var xmlResponse = await HandlerExtensions.PropertyResponse(propertyRegistry, principal, href: null, properties, httpContext);
         xmlMultistatus.Add(xmlResponse);
         return new(xmlDoc);
     }

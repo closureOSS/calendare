@@ -182,7 +182,7 @@ public class ResourceRepository
                     DavResourceType.Calendar => DavResourceType.CalendarItem,
                     DavResourceType.Addressbook => DavResourceType.AddressbookItem,
                     _ => throw new Exception(),
-                }
+                },
             };
             result.Add(resource);
 
@@ -413,7 +413,7 @@ public class ResourceRepository
         {
             return null;
         }
-        var uri = new CaldavUri(uris.First(), PathBase);
+        var uri = new CaldavUri(uris[0], PathBase);
         return await GetResourceAsync(uri, context, ct);
     }
 
@@ -449,7 +449,7 @@ public class ResourceRepository
         {
             var permission = GetGrantRelation(permissions, resource.Current);
             permission ??= GetGrantRelation(permissions, resource.Parent);
-            permission ??= permissions.First();
+            permission ??= permissions[0];
             return (globalPermits | permission.Privileges) & (resource.Current?.AuthorizedMask ?? resource.Owner.AuthorizedMask);
         }
         return globalPermits;
@@ -475,7 +475,7 @@ public class ResourceRepository
             Calendare.Data.Models.CollectionType.Addressbook => DavResourceType.Addressbook,
             Calendare.Data.Models.CollectionType.Calendar => DavResourceType.Calendar,
             Calendare.Data.Models.CollectionType.Principal => DavResourceType.Principal,
-            _ => DavResourceType.Container
+            _ => DavResourceType.Container,
         };
     }
 }

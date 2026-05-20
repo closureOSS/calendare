@@ -48,7 +48,7 @@ public static class XElementPropertyExtensions
         var xmlRemove = xml.Element(XmlNs.Dav + "remove");
         if (xmlRemove is not null)
         {
-            properties.AddRange(GetPropertyStaticList(xmlRemove, true));
+            properties.AddRange(GetPropertyStaticList(xmlRemove, isDelete: true));
         }
         return properties;
     }
