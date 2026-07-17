@@ -19,6 +19,10 @@
   - DNS entries SRV/TXT \_carddavs.\_tcp and \_caldavs.\_tcp
 - [RFC 7953 - Calendar Availability](https://datatracker.ietf.org/doc/html/rfc7953)
 - [Draft specification for WebDAV Push](https://github.com/bitfireAT/webdav-push), for [HTTP Push](https://datatracker.ietf.org/doc/html/rfc8030), [Message encryption for Web Push](https://datatracker.ietf.org/doc/html/rfc8291), [VAPID keys](https://datatracker.ietf.org/doc/html/rfc8292)
+- [RFC 4331 - Quota and Size Properties for Distributed Authoring and Versioning (DAV) Collections](https://datatracker.ietf.org/doc/html/rfc4331)
+- [RFC 4918 - HTTP Extensions for Web Distributed Authoring and Versioning (WebDAV)](https://datatracker.ietf.org/doc/html/rfc4918)
+  - Support limited to the function as calendar and addressbook server
+  - Locking simulated for Class 2 compliance
 
 ### iCalendar specification
 
@@ -42,9 +46,6 @@
 
 ## Limited support
 
-- [RFC 4918 - HTTP Extensions for Web Distributed Authoring and Versioning (WebDAV)](https://datatracker.ietf.org/doc/html/rfc4918)
-  - Limited support related to the function as calendar and addressbook server
-  - No support for Locking (No Class 2 compliance)
 - [RFC 5323 - Web Distributed Authoring and Versioning (WebDAV) SEARCH](https://datatracker.ietf.org/doc/html/rfc5323)
   - [DAV:limit and DAV:nresults](https://datatracker.ietf.org/doc/html/rfc5323#section-5.17)
 - [RFC 3253 - Versioning Extensions to WebDAV (Web Distributed Authoring and Versioning)](https://datatracker.ietf.org/doc/html/rfc3253)

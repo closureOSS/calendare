@@ -150,6 +150,8 @@ dotnet_diagnostic.MA0004.severity = none
 dotnet_diagnostic.MA0016.severity = none
 # TODO
 dotnet_diagnostic.MA0026.severity = none
+# Make method static (deprecated, use CA1822 instead)
+dotnet_diagnostic.MA0038.severity = none
 # Filename must match type
 dotnet_diagnostic.MA0048.severity = none
 # Method too long
