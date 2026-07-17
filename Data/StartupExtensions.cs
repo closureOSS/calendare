@@ -25,6 +25,7 @@ public static class StartupExtensions
                 .MapEnum<CollectionType>()
                 .MapEnum<CollectionSubType>()
                 .UseNodaTime()
+            // .SetPostgresVersion(18, 0)
             )
             .AddInterceptors(new SoftDeleteInterceptor())
             .EnableDetailedErrors()

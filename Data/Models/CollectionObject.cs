@@ -12,6 +12,7 @@ public class CollectionObject
     public Collection Collection { get; set; } = null!;
 
     public string VObjectType { get; set; } = default!;
+    public string Segment { get; set; } = default!;
     public string Uri { get; set; } = default!;
     public string Uid { get; set; } = default!;
     public string RawData { get; set; } = default!;
@@ -20,6 +21,7 @@ public class CollectionObject
 
     public ObjectCalendar? CalendarItem { get; set; }
     public ObjectAddress? AddressItem { get; set; }
+    public ObjectBlob? BlobItem { get; set; }
 
     public bool IsPublic { get; set; }
     public bool IsPrivate { get; set; }
@@ -40,7 +42,7 @@ public class CollectionObjectConfiguration : IEntityTypeConfiguration<Collection
 {
     public void Configure(EntityTypeBuilder<CollectionObject> builder)
     {
-        builder.HasAlternateKey(k => k.Uri);
+        builder.HasIndex(k => k.Uri).IsUnique();
         builder.Property(c => c.Created).HasDefaultValueSql("now()").ValueGeneratedOnAddOrUpdate();
         builder.Property(c => c.Modified).HasDefaultValueSql("now()").ValueGeneratedOnAdd();
 
@@ -56,6 +58,13 @@ public class CollectionObjectConfiguration : IEntityTypeConfiguration<Collection
             // .HasForeignKey<ObjectAddress>(c => c.CollectionObjectId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(c => c.BlobItem)
+            .WithOne(c => c.CollectionObject)
+            // .HasForeignKey<CollectionObject>(c => c.AddressItemId)
+            // .HasForeignKey<ObjectAddress>(c => c.CollectionObjectId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // builder.HasMany(c => c.Data).WithOne(c => c.Collection).IsRequired();
         // builder.HasMany(c => c.Items).WithOne(c => c.Collection).IsRequired();
         // builder.HasMany(e => e.Properties).WithOne(e => e.Collection).HasForeignKey(k => k.Name).IsRequired();

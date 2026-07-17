@@ -567,7 +567,101 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20250425070016_CreateInitial') THEN
     INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
-    VALUES ('20250425070016_CreateInitial', '9.0.8');
+    VALUES ('20250425070016_CreateInitial', '10.0.8');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    ALTER TABLE collection_object DROP CONSTRAINT ak_collection_object_uri;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    ALTER TABLE collection DROP CONSTRAINT ak_collection_uri;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    ALTER TABLE usr_credential ADD description text;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    ALTER TABLE usr_credential ADD issuer text;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    ALTER TABLE collection_object ADD segment text NOT NULL DEFAULT '';
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    ALTER TABLE collection ADD segment text NOT NULL DEFAULT '';
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    CREATE TABLE object_blob (
+        id integer NOT NULL,
+        collection_object_id integer NOT NULL,
+        content_type text NOT NULL,
+        location text NOT NULL,
+        content_length bigint,
+        display_name text,
+        language_code text,
+        created timestamp with time zone NOT NULL DEFAULT (now()),
+        modified timestamp with time zone NOT NULL DEFAULT (now()),
+        last_access timestamp with time zone NOT NULL DEFAULT (now()),
+        CONSTRAINT pk_object_blob PRIMARY KEY (id),
+        CONSTRAINT fk_object_blob_collection_object_collection_object_id FOREIGN KEY (collection_object_id) REFERENCES collection_object (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    CREATE UNIQUE INDEX ix_collection_object_uri ON collection_object (uri);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    CREATE UNIQUE INDEX ix_collection_uri ON collection (uri);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    CREATE UNIQUE INDEX ix_object_blob_collection_object_id ON object_blob (collection_object_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
+    INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
+    VALUES ('20260622060127_BlobItem', '10.0.8');
     END IF;
 END $EF$;
 COMMIT;

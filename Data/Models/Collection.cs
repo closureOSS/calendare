@@ -16,6 +16,7 @@ public class Collection
     public Collection? Parent { get; set; }
     public int? ParentId { get; set; }
     public ICollection<Collection> Children { get; set; } = new List<Collection>();
+    public string Segment { get; set; } = default!;
     public string Uri { get; set; } = default!;
     public Guid PermanentId { get; set; }
     public CollectionType CollectionType { get; set; } = CollectionType.Collection;
@@ -58,7 +59,7 @@ public class CollectionConfiguration : IEntityTypeConfiguration<Collection>
 {
     public void Configure(EntityTypeBuilder<Collection> builder)
     {
-        builder.HasAlternateKey(k => k.Uri);
+        builder.HasIndex(k => k.Uri).IsUnique();
         builder.Property(b => b.PermanentId).HasValueGenerator<NpgsqlSequentialGuidValueGenerator>();
         builder.Property(x => x.OwnerProhibit)
             .HasConversion(v => v.ToBitArray(), v => v.FromBitArray())

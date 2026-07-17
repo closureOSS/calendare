@@ -7,12 +7,9 @@ namespace Calendare.Data;
     # dotnet ef database drop
     dotnet ef migrations remove  --msbuildprojectextensionspath ..\artifacts\obj\Calendare.Data\
     dotnet ef migrations add CreateInitial --msbuildprojectextensionspath ..\artifacts\obj\Calendare.Data\
+    dotnet ef migrations add BlobItem --msbuildprojectextensionspath ..\artifacts\obj\Calendare.Data\
     dotnet ef migrations script --idempotent --msbuildprojectextensionspath ..\artifacts\obj\Calendare.Data\  --output erm.sql
     dotnet ef database update --msbuildprojectextensionspath ..\artifacts\obj\Calendare.Data\
-
-    dotnet ef migrations add CalDav1 --msbuildprojectextensionspath ..\artifacts\obj\Calendare.Data\
-
-     --msbuildprojectextensionspath ..\artifacts\obj\Calendare.Data\
 */
 public class CalendareContext : DbContext
 {
@@ -39,6 +36,7 @@ public class CalendareContext : DbContext
     public DbSet<ObjectCalendar> Calendar => Set<ObjectCalendar>();
     public DbSet<ObjectCalendarAttendee> CalendarAttendee => Set<ObjectCalendarAttendee>();
     public DbSet<ObjectAddress> Address => Set<ObjectAddress>();
+    public DbSet<ObjectBlob> ObjectBlob => Set<ObjectBlob>();
 
     public DbSet<SyncJournal> SyncJournal => Set<SyncJournal>();
     public DbSet<TrxJournal> TrxJournal => Set<TrxJournal>();

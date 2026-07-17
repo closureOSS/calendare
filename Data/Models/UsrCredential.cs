@@ -11,8 +11,10 @@ public class UsrCredential
     public Usr Usr { get; set; } = null!;
     public UsrCredentialType CredentialType { get; set; } = null!;
     public int CredentialTypeId { get; set; }
+    public string? Issuer { get; set; }
     public string Accesskey { get; set; } = default!;
     public string? Secret { get; set; }
+    public string? Description { get; set; }
     public Instant? Locked { get; set; }
     public Interval? Validity { get; set; }
 
