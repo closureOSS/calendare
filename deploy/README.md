@@ -105,6 +105,18 @@ Or include the VAPID keys directly in `values.yaml` with:
 
 These defaults are only used if no value is supplied by the user during account creation. The user can change these values later.
 
+## Calendare User Constraints
+
+| Key                                   | Type   | Default         | Description                              |
+| ------------------------------------- | ------ | --------------- | ---------------------------------------- |
+| calendare.userConstraints             | object | `{}`            | ...                                      |
+| calendare.userConstraints.ApplicationKeySecret   | string | undefined | A secret (e.g. 'd9HbXPCSU...Aq5nRk`            |
+
+A missing `ApplicationKeySecret` doesn't allow the use of the recommended client application secrets.
+
+Changing the secret invalidates all application keys the users have created.
+
+
 ## Calendar Clients Feature Configuration
 
 | Key                | Type  | Default | Description |
@@ -152,6 +164,18 @@ An example setup to enable experimental features for all client types (e.g. for 
 Disabled features have a higher priority than enabled features.
 
 If a client is not configured in `calendare.features` the in-built settings are applied, which are taken from the `appsettings.json` file of the server.
+
+## WebDAV file storage
+
+| Key                                 | Type   | Default                | Description                    |
+| ----------------------------------- | ------ | ---------------------- | ------------------------------ |
+| webdav.enabled                  | bool | false          | Enable/Disable WebDAV storage         |
+| webdav.provider             | string | `None'                   | Define S3 or Filestorage                            |
+
+The `webdav.s3` supports `Bucket`, `Host`, `AccessKey`, `SecretKey`, `Region` and `PathStyle` (true|false).
+
+The `webdav.filestorage` supports `PathBase`.
+
 
 ## Testing and Debugging Configuration
 
