@@ -55,4 +55,9 @@ public enum CalendareFeatures
     /// Doesn't send a GONE status (as required by the RFC)
     /// </summary>
     SyncCollectionSuppressTokenGone,
+
+    /// <summary>
+    /// Legacy webdav clients (currently used for native MacOS and Windows 11 webdav client/mounter)
+    /// </summary>
+    LegacyWebDAV,
 }

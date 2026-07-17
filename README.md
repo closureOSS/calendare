@@ -40,7 +40,7 @@ Two companion sub-projects are scheduled for open-source release shortly:
 
 - **Web UI**: A portal for user account provisioning and self-management of calendar and contact resources, powered by this server's API.
 
-- **Integration Test Suite**: A comprehensive testing application currently covering over 800 functional use cases.
+- **Integration Test Suite**: A comprehensive testing application currently covering over 900 functional use cases.
 
 ## Development
 

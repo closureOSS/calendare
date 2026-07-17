@@ -183,7 +183,11 @@ public class CollectionRepository
         }
         if (request.Timezone is not null)
         {
-            if (TimezoneParser.TryReadTimezone(request.Timezone ?? "", out var timeZone))
+            if (string.IsNullOrWhiteSpace(request.Timezone))
+            {
+                collection.Timezone = null;
+            }
+            else if (TimezoneParser.TryReadTimezone(request.Timezone, out var timeZone))
             {
                 collection.Timezone = timeZone!.Id;
             }
@@ -192,7 +196,6 @@ public class CollectionRepository
                 return false;
             }
         }
-        // TODO: uri
         return true;
     }
 

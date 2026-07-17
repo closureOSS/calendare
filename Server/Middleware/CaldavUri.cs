@@ -2,7 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using Calendare.Server.Api;
+using Calendare.Server.Utils;
 
 namespace Calendare.Server.Middleware;
 
@@ -10,96 +11,102 @@ public class CaldavUri
 {
     public CaldavUri(string path, string? pathPrefix = null)
     {
-        var prefixSegments = pathPrefix?.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var hasPrefix = prefixSegments is not null && prefixSegments.Length > 0;
-        var hasSlashEnding = path.EndsWith('/');
-        var Segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var (segments, hasSlashEnding) = UriUtils.ToSegments(path, pathPrefix);
+        if (segments is null) throw new ArgumentNullException(nameof(path));
         var idx = 0;
+        var hasNoValidSegments = true;
         var expectedUsername = true;
-        foreach (var segment in Segments)
+        foreach (var segment in segments)
         {
-            var part = segment.EndsWith('/') ? segment[..^1] : segment;
-            var isLast = idx == Segments.Length - 1;
-            // TODO: Prefix check is brittle. Switch to full-match or nothing logic.
-            if (hasPrefix && prefixSegments?.Length > idx)
+            var isLast = idx++ == segments.Length - 1;
+            if (string.IsNullOrEmpty(segment))
             {
-                if (string.Equals(part, prefixSegments[idx], StringComparison.Ordinal))
-                {
-                    ++idx;
-                    continue;
-                }
-                hasPrefix = false;
+                continue;
             }
-            ++idx;
-            if (!string.IsNullOrEmpty(part))
+            var decoded = Uri.UnescapeDataString(segment);
+            if (expectedUsername)
             {
-                var decoded = HttpUtility.UrlDecode(part);
-                if (expectedUsername)
+                expectedUsername = false;
+                if (!UserExtensions.IsValidUsername(decoded))
                 {
-                    Username = decoded;
-                    expectedUsername = false;
+                    break;
                 }
-                else
-                {
-                    if (!isLast)
-                    {
-                        Components.Add(decoded);
-                    }
-                    else
-                    {
-                        if (hasSlashEnding || Components.Count == 0)
-                        {
-                            Components.Add(decoded);
-                            IsDirectory = true;
-                        }
-                        else
-                        {
-                            ItemName = decoded;
-                        }
-                    }
-                }
+                Username = decoded;
+                continue;
             }
+            if (!isLast)
+            {
+                Components.Add(decoded);
+                continue;
+            }
+            TrailingSegment = decoded;
+            if (hasSlashEnding || Components.Count == 0)
+            {
+                Components.Add(decoded);
+                IsDirectory = true;
+            }
+            else
+            {
+                ItemName = decoded;
+            }
+            hasNoValidSegments = false;
+        }
+        IsRoot = segments.Length == 0;
+        IsResource = !hasNoValidSegments && !string.IsNullOrEmpty(Username);
+        IsPrincipal = !string.IsNullOrEmpty(Username) && Components.Count == 0;
+        IsInvalid = !(IsRoot || IsResource || IsPrincipal);
+        if (!IsInvalid)
+        {
+            IsSubResource = Components.Count > 1;
         }
     }
 
     private readonly List<string> Components = [];
+
+    public string? Username { get; }
+    public string? ItemName { get; }
+    public string? TrailingSegment { get; }
+
+    /// <summary>
+    /// URI is malformed and does not point to any possible resource
+    /// </summary>
+    public bool IsInvalid { get; }
+
+    /// <summary>
+    /// Uri refers to a resource (collection or object) with a principal.
+    /// </summary>
+    public bool IsResource { get; }
+
+    /// <summary>
+    /// URI indicates a folder/directory (ends in a / or no path component). IsDirectory implies IsResource.
+    /// </summary>
     public bool IsDirectory { get; }
 
-    public string? Username { get; init; }
-    public string? ItemName { get; init; }
-    public bool IsValid() => !string.IsNullOrEmpty(Username);
+    /// <summary>
+    /// URI refers to the root directory (principal not defined)
+    /// </summary>
+    public bool IsRoot { get; }
 
-    public bool IsPrincipal() => IsValid() && Components.Count == 0;
+    /// <summary>
+    /// URI refers to a principal
+    /// </summary>
+    public bool IsPrincipal { get; }
 
-    public List<string>? Collection
-    {
-        get
-        {
-            if (Components.Count <= 0)
-            {
-                return null;
-            }
-            return Components.GetRange(0, Components.Count - (IsDirectory ? 0 : 1));
-        }
-    }
+    public bool IsSubResource { get; }
 
     public string? Path
     {
         get
         {
-            if (!IsValid())
+            if (IsInvalid || IsRoot)
             {
                 return null;
             }
             if (string.IsNullOrEmpty(ItemName))
             {
-                if (Components.Count == 0)
-                {
-                    return $"/{Username}/";
-                }
-                return $"/{Username}/{string.Join('/', Components.Select(EncodeSlash))}/";
+                return UriUtils.ToFolderPath(UriUtils.ToPath([Username!, .. Components.Select(UriUtils.EncodeSlash)!]));
             }
-            return $"/{Username}/{string.Join('/', Components.Select(EncodeSlash))}/{EncodeSlash(ItemName)}";
+            return UriUtils.ToPath([Username!, .. Components.Select(UriUtils.EncodeSlash)!, UriUtils.EncodeSlash(ItemName)]);
         }
     }
 
@@ -107,33 +114,21 @@ public class CaldavUri
     {
         get
         {
-            if (!IsValid())
+            if (IsInvalid)
             {
                 return null;
             }
+            var components = Components;
             if (string.IsNullOrEmpty(ItemName))
             {
-                if (Components.Count == 0)
+                switch (Components.Count)
                 {
-                    return "/";
+                    case 0: return UriUtils.ToFolderPath([]);
+                    case 1: return UriUtils.ToFolderPath([Username!]);
                 }
-                var components = Components[..^1];
-                if (components.Count == 0)
-                {
-                    return $"/{Username}/";
-                }
-                return $"/{Username}/{string.Join('/', components.Select(EncodeSlash))}/";
+                components = Components[..^1];
             }
-            else
-            {
-                return $"/{Username}/{string.Join('/', Components.Select(EncodeSlash))}/";
-            }
+            return UriUtils.ToFolderPath([Username!, .. components.Select(UriUtils.EncodeSlash)!]);
         }
-    }
-
-    private static string? EncodeSlash(string? uri)
-    {
-        if (uri is null) return null;
-        return uri.Contains('/', StringComparison.Ordinal) ? uri.Replace("/", "%2F", StringComparison.Ordinal) : uri;
     }
 }

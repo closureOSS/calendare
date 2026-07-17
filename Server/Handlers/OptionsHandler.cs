@@ -26,8 +26,7 @@ public class OptionsHandler : HandlerBase, IMethodHandler
     public async Task HandleRequestAsync(HttpContext httpContext, DavResource resource)
     {
         var response = httpContext.Response;
-        // response.Headers["MS-Author-Via"] = "DAV";
-        SetCapabilitiesHeader(response);
+        SetCapabilitiesHeader(response, resource.ResourceType);
 
         if (resource.ParentResourceType == DavResourceType.Unknown)
         {
@@ -35,7 +34,7 @@ public class OptionsHandler : HandlerBase, IMethodHandler
             return;
         }
         // Handle access to resources without privileges (simple case CurrentUser != Owner)
-        if (!resource.Privileges.HasAnyOf())
+        if (!resource.Privileges.HasAnyOf() && !resource.Uri.IsRoot)
         {
             await WriteErrorNeedPrivilegeAsync(httpContext, resource.DavName, PrivilegeMask.Read);
             return;
@@ -43,24 +42,35 @@ public class OptionsHandler : HandlerBase, IMethodHandler
         switch (resource.ResourceType)
         {
             case DavResourceType.Root:
-                response.Headers.Allow = "OPTIONS, PROPFIND, REPORT";
+                // Over-advertise on Root. Violates RFC4918, but required by several clients ...
+                response.Headers.Allow = string.Join(", ", SupportedMethods);
                 break;
 
             case DavResourceType.Principal:
             case DavResourceType.User:
-                var principalMethods = SupportedMethods.Except(["MKCALENDAR", "MKCOL", "POST"], System.StringComparer.Ordinal);
+                var principalMethods = SupportedMethods.Except(["MKCALENDAR", "MKCOL", "POST",], System.StringComparer.Ordinal);
                 response.Headers.Allow = string.Join(", ", principalMethods);
                 break;
 
             case DavResourceType.AddressbookItem:
             case DavResourceType.CalendarItem:
-                var objectMethods = SupportedMethods.Except(["MKCALENDAR", "MKCOL", "POST", "PROPPATCH"], System.StringComparer.Ordinal);
+                var objectMethods = SupportedMethods.Except(["MKCALENDAR", "MKCOL", "POST", "PROPPATCH", "MOVE", "COPY",], System.StringComparer.Ordinal);
                 response.Headers.Allow = string.Join(", ", objectMethods);
+                break;
+
+            case DavResourceType.BlobItem:
+                if (!resource.Exists)
+                {
+                    await WriteStatusAsync(httpContext, HttpStatusCode.NotFound);
+                    return;
+                }
+                var objectBlobMethods = SupportedMethods.Except(["MKCALENDAR", "MKCOL", "POST",], System.StringComparer.Ordinal);
+                response.Headers.Allow = string.Join(", ", objectBlobMethods);
                 break;
 
             case DavResourceType.Calendar:
             case DavResourceType.Addressbook:
-                var collectionMethods = SupportedMethods.Except(["MKCALENDAR", "MKCOL",], System.StringComparer.Ordinal);
+                var collectionMethods = SupportedMethods.Except(["MKCALENDAR", "MKCOL", "MOVE", "COPY",], System.StringComparer.Ordinal);
                 response.Headers.Allow = string.Join(", ", collectionMethods);
                 break;
 

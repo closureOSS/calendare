@@ -10,7 +10,7 @@
       "name": "MIT",
       "url": "https://mit-license.org/"
     },
-    "version": "0.6.3"
+    "version": "0.0.1"
   },
   "paths": {
     "/api/version": {
@@ -672,7 +672,7 @@
         "tags": [
           "Calendare"
         ],
-        "summary": "Create credential",
+        "summary": "Create (additional) credential for an user account",
         "operationId": "CreateCredential",
         "parameters": [
           {
@@ -688,7 +688,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserCredentialRequest"
+                "$ref": "#/components/schemas/UserCredentialCreateRequest"
               }
             }
           },
@@ -716,10 +716,198 @@
             }
           },
           "201": {
-            "description": "Created"
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialCreateResponse"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Unprocessable Content"
+            "description": "Unprocessable Content",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/credentials/user/{username}/{credentialSubject}": {
+      "get": {
+        "tags": [
+          "Calendare"
+        ],
+        "summary": "Get credential of user",
+        "description": "Returns credential",
+        "operationId": "GetCredentialOfUser",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "credentialSubject",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "credentialType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Calendare"
+        ],
+        "summary": "Delete credential",
+        "operationId": "DeleteCredential",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "credentialSubject",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "credentialType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -822,14 +1010,14 @@
         }
       }
     },
-    "/api/credentials/user/{username}/{credentialId}/lock": {
+    "/api/credentials/user/{username}/{credentialSubject}/lock": {
       "patch": {
         "tags": [
           "Calendare"
         ],
-        "summary": "Unlock credential",
+        "summary": "Lock credential",
         "description": "Returns credential entry",
-        "operationId": "UnlockCredential",
+        "operationId": "LockCredential",
         "parameters": [
           {
             "name": "username",
@@ -840,12 +1028,18 @@
             }
           },
           {
-            "name": "credentialId",
+            "name": "credentialSubject",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
+            }
+          },
+          {
+            "name": "credentialType",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -896,9 +1090,9 @@
         "tags": [
           "Calendare"
         ],
-        "summary": "Lock credential",
+        "summary": "Unlock credential",
         "description": "Returns credential entry",
-        "operationId": "LockCredential",
+        "operationId": "UnlockCredential",
         "parameters": [
           {
             "name": "username",
@@ -909,12 +1103,18 @@
             }
           },
           {
-            "name": "credentialId",
+            "name": "credentialSubject",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
+            }
+          },
+          {
+            "name": "credentialType",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -962,13 +1162,13 @@
         }
       }
     },
-    "/api/credentials/user/{username}/{credentialId}/reset": {
+    "/api/credentials/user/{username}/{credentialSubject}/reset": {
       "patch": {
         "tags": [
           "Calendare"
         ],
-        "summary": "Set password credential",
-        "description": "Returns credential entry",
+        "summary": "Change password of credential. If no password supplied one will be generated.",
+        "description": "Returns credential entry with secret",
         "operationId": "SetCredentialPassword",
         "parameters": [
           {
@@ -980,12 +1180,18 @@
             }
           },
           {
-            "name": "credentialId",
+            "name": "credentialSubject",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
+            }
+          },
+          {
+            "name": "credentialType",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -993,11 +1199,10 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserCredentialRequest"
+                "$ref": "#/components/schemas/UserCredentialResetRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "500": {
@@ -1025,7 +1230,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CredentialResponse"
+                  "$ref": "#/components/schemas/CredentialCreateResponse"
                 }
               }
             }
@@ -1039,69 +1244,6 @@
                 }
               }
             }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/credentials/user/{username}/{credentialId}": {
-      "delete": {
-        "tags": [
-          "Calendare"
-        ],
-        "summary": "Delete credential",
-        "operationId": "DeleteCredential",
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "credentialId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK"
           },
           "403": {
             "description": "Forbidden",
@@ -1188,7 +1330,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserCredentialRequest"
+                "$ref": "#/components/schemas/UserCredentialLoginRequest"
               }
             }
           },
@@ -3171,6 +3313,54 @@
         }
       }
     },
+    "/api/site/garbagecollection": {
+      "delete": {
+        "tags": [
+          "Operation"
+        ],
+        "summary": "Trigger garbage collection",
+        "description": "GC cleans up deleted webdav blobs (files)",
+        "operationId": "GarbageCollection",
+        "responses": {
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/site": {
       "delete": {
         "tags": [
@@ -3344,6 +3534,8 @@
           "MacOSCalendar",
           "EMClient",
           "DAVx5",
+          "MicrosoftWebDAV",
+          "MacOSWebDAV",
           "Default"
         ],
         "type": "string"
@@ -3489,7 +3681,8 @@
           "AutoScheduling",
           "WebdavPush",
           "VCard4",
-          "SyncCollectionSuppressTokenGone"
+          "SyncCollectionSuppressTokenGone",
+          "LegacyWebDAV"
         ],
         "type": "string"
       },
@@ -3672,20 +3865,12 @@
         ],
         "type": "string"
       },
-      "CredentialResponse": {
+      "CredentialCreateResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
           "subject": {
             "type": "string",
             "nullable": true
-          },
-          "usrId": {
-            "type": "integer",
-            "format": "int32"
           },
           "username": {
             "type": "string",
@@ -3703,9 +3888,13 @@
           "credentialType": {
             "$ref": "#/components/schemas/UsrCredentialType"
           },
-          "credentialTypeId": {
-            "type": "integer",
-            "format": "int32"
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuer": {
+            "type": "string",
+            "nullable": true
           },
           "lastUsed": {
             "type": "string",
@@ -3713,6 +3902,82 @@
             "nullable": true
           },
           "locked": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validTo": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "secret": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CredentialResponse": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "emailOk": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "credentialType": {
+            "$ref": "#/components/schemas/UsrCredentialType"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuer": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastUsed": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "locked": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validTo": {
             "type": "string",
             "format": "date-time",
             "nullable": true
@@ -4437,7 +4702,55 @@
         },
         "additionalProperties": false
       },
-      "UserCredentialRequest": {
+      "UserCredentialCreateRequest": {
+        "required": [
+          "template"
+        ],
+        "type": "object",
+        "properties": {
+          "template": {
+            "$ref": "#/components/schemas/UserCredentialCreateTemplate"
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuer": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validTo": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserCredentialCreateTemplate": {
+        "enum": [
+          "ApplicationKey",
+          "Email",
+          "Username",
+          "JwtBearer",
+          "Generic"
+        ],
+        "type": "string"
+      },
+      "UserCredentialLoginRequest": {
         "type": "object",
         "properties": {
           "credentialType": {
@@ -4452,6 +4765,20 @@
             "type": "string",
             "nullable": true
           },
+          "password": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserCredentialResetRequest": {
+        "type": "object",
+        "properties": {
           "password": {
             "type": "string",
             "nullable": true

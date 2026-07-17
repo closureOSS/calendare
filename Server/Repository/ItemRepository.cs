@@ -177,7 +177,7 @@ public partial class ItemRepository
         ct.ThrowIfCancellationRequested();
 
         Db.CollectionObject.Add(data);
-        await TrackSyncChanges(data, false, ct);
+        await TrackSyncChanges(data, isDelete: false, ct);
         await Db.SaveChangesAsync(ct);
         return data;
     }
@@ -189,16 +189,23 @@ public partial class ItemRepository
         if (data.Id != 0)
         {
             var oldsync = await Db.SyncJournal.Where(c => c.CollectionId == data.CollectionId && c.CollectionObjectId == data.Id).FirstOrDefaultAsync(ct);
-            if (oldsync is not null)
-            {
-                oldsync.CollectionObjectId = null;
-            }
+            oldsync?.CollectionObjectId = null;
             data.Modified = SystemClock.Instance.GetCurrentInstant();
         }
-        await TrackSyncChanges(data, false, ct);
+        await TrackSyncChanges(data, isDelete: false, ct);
 
         await Db.SaveChangesAsync(ct);
         transaction.Commit();
+        return data;
+    }
+
+    public async Task<CollectionObject?> UpdateWithoutJournalAsync(CollectionObject data, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        using var transaction = await Db.Database.BeginTransactionAsync(ct);
+        data.Modified = SystemClock.Instance.GetCurrentInstant();
+        await Db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         return data;
     }
 
@@ -247,10 +254,7 @@ public partial class ItemRepository
         if (data.Id != 0)
         {
             var oldsync = await Db.SyncJournal.Where(c => c.CollectionId == data.CollectionId && c.CollectionObjectId == data.Id).FirstOrDefaultAsync(ct);
-            if (oldsync is not null)
-            {
-                oldsync.CollectionObjectId = null;
-            }
+            oldsync?.CollectionObjectId = null;
             data.Modified = SystemClock.Instance.GetCurrentInstant();
         }
         else
@@ -271,10 +275,7 @@ public partial class ItemRepository
         if (data.Id != 0)
         {
             var oldsync = await Db.SyncJournal.Where(c => c.CollectionId == data.CollectionId && c.CollectionObjectId == data.Id).FirstOrDefaultAsync(ct);
-            if (oldsync is not null)
-            {
-                oldsync.CollectionObjectId = null;
-            }
+            oldsync?.CollectionObjectId = null;
             Db.CollectionObject.Remove(data);
         }
         return new SyncJournal
@@ -302,25 +303,7 @@ public partial class ItemRepository
         return await Db.SaveChangesAsync(ct);
     }
 
-    public async Task<int> MoveAsync(CollectionObject source, Collection target, string destination, CancellationToken ct)
-    {
-        ct.ThrowIfCancellationRequested();
-        using var transaction = Db.Database.BeginTransaction();
-        Db.CollectionObject.Remove(source);
-        await TrackSyncChanges(source, true, ct);
-        await Db.SaveChangesAsync(ct);
-        source.Id = 0;
-        source.Collection = target;
-        source.CollectionId = target.Id;
-        source.Uri = destination;
-        Db.CollectionObject.Add(source);
-        await TrackSyncChanges(source, false, ct);
-        var result = await Db.SaveChangesAsync(ct);
-        transaction.Commit();
-        return result;
-    }
-
-    private async Task TrackSyncChanges(CollectionObject data, bool isDelete, CancellationToken ct)
+    public async Task TrackSyncChanges(CollectionObject data, bool isDelete, CancellationToken ct)
     {
         await TrackSyncChanges([new SyncJournal
         {

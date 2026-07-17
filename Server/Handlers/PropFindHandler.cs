@@ -46,7 +46,7 @@ public class PropFindHandler : HandlerBase, IMethodHandler
         {
             SetEtagHeader(response, resourceBase.Current?.Etag ?? resourceBase.DavEtag);
             SetContentLocation(response, resourceBase.Uri.Path);
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "invalid-xml");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, Precondition.InvalidXml);
             return;
         }
         if (xmlRequest is not null)
@@ -55,48 +55,56 @@ public class PropFindHandler : HandlerBase, IMethodHandler
             {
                 SetEtagHeader(response, resourceBase.Current?.Etag ?? resourceBase.DavEtag);
                 SetContentLocation(response, resourceBase.Uri.Path);
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "invalid-xml");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, Precondition.InvalidXml);
                 return;
             }
             Recorder.SetRequestBody(xmlRequest);
             properties = xmlRequest.GetProperties();
         }
-        SetCapabilitiesHeader(response);
+        SetCapabilitiesHeader(response, resourceBase.ResourceType);
         if (resourceBase.Exists == false)
         {
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.NotFound, XmlNs.Dav + "must-exist", "That resource is not present on server.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.NotFound, Precondition.MustExist, "That resource is not present on server.");
             return;
         }
-        await ResourceRepository.ListPrincipalsAsResourceAsync(resourceBase, false, httpContext.RequestAborted);    // loads additional data for resourceBase
+        var principalResources = await ResourceRepository.ListPrincipalsAsResourceAsync(resourceBase, onlySelf: false, httpContext.RequestAborted);    // loads additional data for resourceBase
         var (xmlDoc, xmlMultistatus) = HandlerExtensions.CreateMultistatusDocument();
-        var resourceList = new List<DavResource> { resourceBase };
-        // Resolve to infinity not implemented (collections within collections)
+        var topOfTree = DavResourceNode.CreateRoot(resourceBase);
+        // Resolve to infinity not generally implemented (collections within collections)
         if (depth != 0)
         {
             switch (resourceBase.ResourceType)
             {
                 case DavResourceType.Root:
-                    resourceList.AddRange(await ResourceRepository.ListPrincipalsAsResourceAsync(resourceBase, false, httpContext.RequestAborted));
-                    // Resolve only to depth 1 with hard-coded to depth=2 on root as exception
-                    if (depth > 1)
-                    {
-                        resourceList.AddRange(await ResourceRepository.ListChildrenAsResourcesAsync(resourceBase, httpContext.RequestAborted));
-                    }
+                    topOfTree.AddRange(principalResources);
+                    await ResourceRepository.ListChildrenAsResourcesAsync(topOfTree, resourceBase, depth, httpContext.RequestAborted);
                     break;
 
                 case DavResourceType.Principal:
-                    resourceList.AddRange(await ResourceRepository.ListChildrenAsResourcesAsync(resourceBase, httpContext.RequestAborted));
+                    await ResourceRepository.ListChildrenAsResourcesAsync(topOfTree, resourceBase, depth, httpContext.RequestAborted);
                     break;
 
                 case DavResourceType.Calendar:
                 case DavResourceType.Addressbook:
-
-                    resourceList.AddRange(await ResourceRepository.ListChildObjectsAsResourcessync(resourceBase, httpContext.RequestAborted));
+                    topOfTree.AddChildren(await ResourceRepository.ListChildObjectsAsResourcesAsync(resourceBase, httpContext.RequestAborted));
                     break;
+
+                case DavResourceType.Container:
+                    if (depth > 1)
+                    {
+                        await WriteErrorXmlAsync(httpContext, HttpStatusCode.Forbidden, Precondition.PropfindFiniteDepth, "Only depth 0 or 1 supported.");
+                        return;
+                    }
+                    await ResourceRepository.ListChildrenAsResourcesAsync(topOfTree, resourceBase, 1, httpContext.RequestAborted);
+                    //  topOfTree.AddChildren(await ResourceRepository.ListDirectChildrenAsResourcesAsync(resourceBase, httpContext.RequestAborted));
+                    topOfTree.AddChildren(await ResourceRepository.ListBlobsAsResourcesAsync(resourceBase, httpContext.RequestAborted));
+                    break;
+
                 default:
                     break;
             }
         }
+        var resourceList = topOfTree.ToList(depth);
         foreach (var resource in resourceList)
         {
             if (resource is null || !resource.VerifyResourceType())
@@ -113,7 +121,7 @@ public class PropFindHandler : HandlerBase, IMethodHandler
         var propertyRegistry = httpContext.RequestServices.GetRequiredService<DavPropertyRepository>();
         foreach (var resource in resourceList)
         {
-            var xmlResponse = await HandlerExtensions.PropertyResponse(propertyRegistry, resource, null, properties, httpContext);
+            var xmlResponse = await HandlerExtensions.PropertyResponse(propertyRegistry, resource, href: null, properties, httpContext);
             xmlMultistatus.Add(xmlResponse);
         }
 

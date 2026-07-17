@@ -7,6 +7,7 @@ using Calendare.Server.Constants;
 using Calendare.Server.Handlers;
 using Calendare.Server.Models;
 using Calendare.Server.Repository;
+using Calendare.Server.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -59,7 +60,7 @@ public class ExpandPropertyReport : ReportBase, IReport
 
     private async Task<XElement> BaseNodeResponse(XElement xmlRequest, XElement xmlResponseParent, DavPropertyRepository propertyRegistry, DavResource resource, HttpContext httpContext)
     {
-        var xmlResponse = new XElement(XmlNs.Dav + "response", new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.DavName}"));
+        var xmlResponse = new XElement(XmlNs.Dav + "response", new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.DavName)));
         xmlResponseParent.Add(xmlResponse);
         var expandProperties = xmlRequest.Elements(XmlNs.Dav + "property");
         if (!expandProperties.Any())

@@ -34,7 +34,7 @@ public class DavResource
     public DavResource(CaldavUri uri)
     {
         Uri = uri;
-        ResourceType = uri.IsValid() ? DavResourceType.Unknown : DavResourceType.Root;
+        ResourceType = uri.IsResource ? DavResourceType.Unknown : DavResourceType.Root;
         DavName = uri.Path ?? "/";
     }
 
@@ -59,6 +59,7 @@ public class DavResource
 
             case DavResourceType.CalendarItem:
             case DavResourceType.AddressbookItem:
+            case DavResourceType.BlobItem:
                 if (Object is not null)
                 {
                     return true;
@@ -146,19 +147,12 @@ public class DavResource
                     exclude |= PrivilegeMask.Share;
                     if (Current is not null)
                     {
-                        switch (Current.CollectionSubType)
+                        exclude |= Current.CollectionSubType switch
                         {
-                            case CollectionSubType.SchedulingOutbox:
-                                exclude |= PrivilegeMask.ReadFreeBusy | PrivilegeMask.ScheduleDeliver;
-                                break;
-                            case CollectionSubType.SchedulingInbox:
-                                exclude |= PrivilegeMask.ReadFreeBusy | PrivilegeMask.ScheduleSend;
-                                break;
-                            case CollectionSubType.Default:
-                            default:
-                                exclude |= PrivilegeMask.ScheduleDeliver | PrivilegeMask.ScheduleSend;
-                                break;
-                        }
+                            CollectionSubType.SchedulingOutbox => PrivilegeMask.ReadFreeBusy | PrivilegeMask.ScheduleDeliver,
+                            CollectionSubType.SchedulingInbox => PrivilegeMask.ReadFreeBusy | PrivilegeMask.ScheduleSend,
+                            _ => PrivilegeMask.ScheduleDeliver | PrivilegeMask.ScheduleSend,
+                        };
                     }
                     break;
 
@@ -174,6 +168,10 @@ public class DavResource
                 case DavResourceType.AddressbookItem:
                     // factually it should be All, as privileges are only supported on collections
                     exclude |= PrivilegeMask.Unbind | PrivilegeMask.Bind | PrivilegeMask.Share | PrivilegeMask.ReadFreeBusy | PrivilegeMask.ScheduleSend | PrivilegeMask.ScheduleDeliver | PrivilegeMask.WriteAcl;
+                    break;
+
+                case DavResourceType.BlobItem:
+                    exclude |= PrivilegeMask.Unbind | PrivilegeMask.Bind | PrivilegeMask.ReadFreeBusy | PrivilegeMask.ScheduleSend | PrivilegeMask.ScheduleDeliver;
                     break;
             }
         }

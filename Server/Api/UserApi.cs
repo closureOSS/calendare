@@ -194,7 +194,6 @@ public static partial class AdministrationApi
                 return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Timezone Id is invalid or unknown" });
             }
             request.Timezone = timeZone!.Id;
-            // TODO: [HIGH] Implement update user
             var updatedUser = await principalRepository.UpdateAsync(existingUser.Principal, request, context.RequestAborted);
             return updatedUser is not null ? TypedResults.Ok(updatedUser.Collections.First().ToPrincipal().ToView()) : TypedResults.BadRequest(new ProblemDetails());
         })

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -21,10 +20,7 @@ namespace Calendare.Server.Handlers;
 /// Implementation of the PUT method.
 /// </summary>
 /// <remarks>
-/// The specification of the PUT method can be found in the
-/// TODO <see href="http://www.webdav.org/specs/rfc2518.html#METHOD_MKCOL">
-/// CalDav specification
-/// </see>.
+/// The specification of the PUT method can be found in <see href="https://datatracker.ietf.org/doc/html/rfc4918#section-9.7"></see>.
 /// </remarks>
 public partial class PutHandler : HandlerBase, IMethodHandler
 {
@@ -69,17 +65,17 @@ public partial class PutHandler : HandlerBase, IMethodHandler
         {
             if (contentType is not null && !string.Equals(contentType.MediaType, MimeContentTypes.VCalendar, StringComparison.OrdinalIgnoreCase))
             {
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "supported-calendar-data", $"Incorrect content type for calendar: {contentType.MediaType}");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.SupportedCalendarData, $"Incorrect content type for calendar: {contentType.MediaType}");
                 return;
             }
             await AmendCalender(httpContext, resource);
             return;
         }
-        if (resource.ResourceType == DavResourceType.CalendarItem || string.Equals(contentType?.MediaType, MimeContentTypes.VCalendar, StringComparison.OrdinalIgnoreCase))
+        if (resource.ResourceType == DavResourceType.CalendarItem || (resource.ParentResourceType == DavResourceType.Calendar && string.Equals(contentType?.MediaType, MimeContentTypes.VCalendar, StringComparison.OrdinalIgnoreCase)))
         {
             if (contentType is not null && !string.Equals(contentType.MediaType, MimeContentTypes.VCalendar, StringComparison.OrdinalIgnoreCase))
             {
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "supported-calendar-data", $"Incorrect content type for calendar: {contentType.MediaType}");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.SupportedCalendarData, $"Incorrect content type for calendar: {contentType.MediaType}");
                 return;
             }
             // add single calendar item
@@ -90,7 +86,7 @@ public partial class PutHandler : HandlerBase, IMethodHandler
         {
             if (contentType is not null && !string.Equals(contentType.MediaType, MimeContentTypes.VCard, StringComparison.OrdinalIgnoreCase))
             {
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "supported-address-data", $"Incorrect content type for addressbook: {contentType.MediaType}");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.SupportedAddressData, $"Incorrect content type for addressbook: {contentType.MediaType}");
                 return;
             }
             await AmendAddressbook(httpContext, resource);
@@ -100,66 +96,36 @@ public partial class PutHandler : HandlerBase, IMethodHandler
         {
             if (contentType is not null && !string.Equals(contentType.MediaType, MimeContentTypes.VCard, StringComparison.OrdinalIgnoreCase))
             {
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "supported-address-data", $"Incorrect content type for addressbook: {contentType.MediaType}");
-                return;
-            }
-            // the parent must exist
-            // the resource type of the parent must be Calendar
-            if (resource is null || resource.Parent is null || resource.ParentResourceType != DavResourceType.Addressbook)
-            {
-                // https://datatracker.ietf.org/doc/html/rfc4918#section-9.7.1
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "collection-must-exist", "The destination collection does not exist.");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.SupportedAddressData, $"Incorrect content type for addressbook: {contentType.MediaType}");
                 return;
             }
             // add single vcard addressbook item
             await AmendAddressbookItem(httpContext, resource);
             return;
         }
-        if (resource.ParentResourceType == DavResourceType.Principal || resource.ParentResourceType == DavResourceType.Root)
+        if (resource.ResourceType == DavResourceType.BlobItem || (resource.ParentResourceType == DavResourceType.Container && resource.ResourceType == DavResourceType.Unknown))
         {
-            await WriteStatusAsync(httpContext, HttpStatusCode.Forbidden, "A principal collection may only contain collections.");
+            await AmendBlob(httpContext, resource);
             return;
         }
+        if (resource.ResourceType == DavResourceType.Container)
         {
-            // TODO: Which cases are to be handled here at all
-
-            string? bodyContent;
-            try
-            {
-                bodyContent = await request.BodyAsStringAsync(httpContext.RequestAborted);
-            }
-            catch (InvalidDataException ex)
-            {
-                Log.Error(ex, "Failed to decode");
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, XmlNs.Dav + "content-encoding", "Unable to decode 'xxx' content encoding.");
-                return;
-            }
-            Recorder.SetRequestBody(bodyContent);
-
-            // unknown content type
-            if (resource.Parent?.CollectionType == CollectionType.Calendar)
-            {
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Caldav + "supported-calendar-data", $"Incorrect content type for calendar: {contentType?.MediaType}");
-                return;
-            }
-            if (resource.Parent?.CollectionType == CollectionType.Addressbook)
-            {
-                //   $request->PreconditionFailed(412,'urn:ietf:params:xml:ns:carddav:supported-address-data',
-                //   translate('Incorrect content type for addressbook: ') . $request->content_type );
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "supported-address-data", $"Incorrect content type for addressbook: {contentType?.MediaType}");
-                return;
-            }
-            // if(parent.IsPrincipal)
-            // {
-            //     response.StatusCode = (int)HttpStatusCode.Forbidden;
-            //     return;
-            // }
-
-            Log.Error("Handling of content type {contentType} not supported", contentType?.MediaType);
-            await WriteStatusAsync(httpContext, HttpStatusCode.UnsupportedMediaType);
+            await WriteStatusAsync(httpContext, HttpStatusCode.MethodNotAllowed, "Use MKCOL on collections");
+            return;
         }
+        switch (resource.ParentResourceType)
+        {
+            case DavResourceType.Principal:
+            case DavResourceType.Root:
+                await WriteStatusAsync(httpContext, HttpStatusCode.Forbidden, "A principal collection may only contain collections.");
+                return;
 
-        await WriteStatusAsync(httpContext, HttpStatusCode.NotImplemented);
+            default:
+                Log.Error("TODO: Check what cases would trigger this error");
+                await WriteStatusAsync(httpContext, HttpStatusCode.NotImplemented);
+                // await WriteStatusAsync(httpContext, HttpStatusCode.UnsupportedMediaType);
+                return;
+        }
     }
 
     private async Task<DbOperationCode> VerifyOperation(HttpContext httpContext, DavResource resource, DavResourceRef resourceOriginal, CollectionObject? collectionObject)
@@ -171,7 +137,7 @@ public partial class PutHandler : HandlerBase, IMethodHandler
             if (resource is null || resource.Parent is null)
             {
                 // https://datatracker.ietf.org/doc/html/rfc4918#section-9.7.1
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Dav + "collection-must-exist", "The destination collection does not exist.");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, Precondition.CollectionMustExist, "The destination collection does not exist.");
                 return DbOperationCode.Failure;
             }
         }
@@ -192,7 +158,7 @@ public partial class PutHandler : HandlerBase, IMethodHandler
                 {
                     SetEtagHeader(response, existingEtag);
                 }
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "if-match", $"Existing resource Etag of \"{ifmatch}\" does not match \"{existingEtag}\"");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.IfMatch, $"Existing resource Etag of \"{ifmatch}\" does not match \"{existingEtag}\"");
                 return DbOperationCode.Failure;
             }
         }
@@ -206,7 +172,7 @@ public partial class PutHandler : HandlerBase, IMethodHandler
                 {
                     SetScheduleHeader(response, existingEtag);
                 }
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "if-match", $"Existing resource schedule tag of \"{ifmatchSchedule}\" does not match \"{existingEtag}\"");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.IfMatch, $"Existing resource schedule tag of \"{ifmatchSchedule}\" does not match \"{existingEtag}\"");
                 return DbOperationCode.Failure;
             }
         }

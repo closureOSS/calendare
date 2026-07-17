@@ -72,7 +72,7 @@ public class RecorderWorker : BackgroundService
                             try
                             {
                                 Log.Information($"REQUEST {requestLeader} --> {responseStatus}");
-                                await siteRepository.AddTrxJournal(msg);
+                                await siteRepository.AddTrxJournalAsync(msg);
                             }
                             catch (Exception e)
                             {

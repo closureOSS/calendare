@@ -21,6 +21,7 @@ public class UserManagementRepository
             CollectionType = CollectionType.Principal,
             PrincipalTypeId = principalType.Id,
             ParentContainerUri = "/",
+            Segment = user.Username,
             Uri = $"/{user.Username}/",
             DisplayName = displayName,
             Timezone = timezone,
@@ -34,6 +35,7 @@ public class UserManagementRepository
             var colCalendar = new Collection
             {
                 Parent = principal,
+                Segment = CollectionUris.DefaultCalendar,
                 Uri = $"/{user.Username}/{CollectionUris.DefaultCalendar}/",
                 CollectionType = CollectionType.Calendar,
                 CollectionSubType = CollectionSubType.Default,
@@ -53,6 +55,7 @@ public class UserManagementRepository
             var colCalendarOutbox = new Collection
             {
                 Parent = principal,
+                Segment = CollectionUris.CalendarOutbox,
                 Uri = $"/{user.Username}/{CollectionUris.CalendarOutbox}/",
                 CollectionType = CollectionType.Calendar,
                 CollectionSubType = CollectionSubType.SchedulingOutbox,
@@ -71,6 +74,7 @@ public class UserManagementRepository
             var colCalendarInbox = new Collection
             {
                 Parent = principal,
+                Segment = CollectionUris.CalendarInbox,
                 Uri = $"/{user.Username}/{CollectionUris.CalendarInbox}/",
                 CollectionType = CollectionType.Calendar,
                 CollectionSubType = CollectionSubType.SchedulingInbox,
@@ -92,6 +96,7 @@ public class UserManagementRepository
             var colSubscriptions = new Collection
             {
                 Parent = principal,
+                Segment = CollectionUris.PushSubscription,
                 Uri = $"/{user.Username}/{CollectionUris.PushSubscription}/",
                 CollectionType = CollectionType.Collection,
                 CollectionSubType = CollectionSubType.WebPushSubscription,
@@ -108,6 +113,7 @@ public class UserManagementRepository
             var colAddressbook = new Collection
             {
                 Parent = principal,
+                Segment = CollectionUris.DefaultAddressbook,
                 Uri = $"/{user.Username}/{CollectionUris.DefaultAddressbook}/",
                 CollectionType = CollectionType.Addressbook,
                 OwnerProhibit = PrivilegeMask.Bind | PrivilegeMask.Unbind,
@@ -124,6 +130,7 @@ public class UserManagementRepository
             var colPrincipalProxyWrite = new Collection
             {
                 Parent = principal,
+                Segment = CollectionUris.CalendarProxyWrite,
                 Uri = $"/{user.Username}/{CollectionUris.CalendarProxyWrite}/",
                 CollectionType = CollectionType.Principal,
                 CollectionSubType = CollectionSubType.CalendarProxyWrite,
@@ -138,6 +145,7 @@ public class UserManagementRepository
             var colPrincipalProxyRead = new Collection
             {
                 Parent = principal,
+                Segment = CollectionUris.CalendarProxyRead,
                 Uri = $"/{user.Username}/{CollectionUris.CalendarProxyRead}/",
                 CollectionType = CollectionType.Principal,
                 CollectionSubType = CollectionSubType.CalendarProxyRead,

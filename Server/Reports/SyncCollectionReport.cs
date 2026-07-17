@@ -9,6 +9,7 @@ using Calendare.Server.Constants;
 using Calendare.Server.Handlers;
 using Calendare.Server.Models;
 using Calendare.Server.Repository;
+using Calendare.Server.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -76,6 +77,7 @@ public class SyncCollectionReport : ReportBase, IReport
                 case DavResourceType.User:
                 case DavResourceType.CalendarItem:
                 case DavResourceType.AddressbookItem:
+                case DavResourceType.BlobItem:
                     exists = false;
                     break;
             }
@@ -87,7 +89,7 @@ public class SyncCollectionReport : ReportBase, IReport
             else
             {
                 var xmlResponse = new XElement(XmlNs.Dav + "response",
-                                    new XElement(XmlNs.Dav + "href", $"{PathBase}{ctx.DavName}"),
+                                    new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(PathBase, ctx.DavName)),
                                     new XElement(XmlNs.Dav + "status", "HTTP/1.1 404 Not Found")
                                 );
                 // TODO: DAV:error missing https://datatracker.ietf.org/doc/html/rfc6578#section-3.2
@@ -152,7 +154,7 @@ public class SyncCollectionReport : ReportBase, IReport
             else
             {
                 var xmlResponse = new XElement(XmlNs.Dav + "response",
-                    new XElement(XmlNs.Dav + "href", $"{PathBase}{ji.Uri}"),
+                    new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(PathBase, ji.Uri)),
                     new XElement(XmlNs.Dav + "status", "HTTP/1.1 404 Not Found")
                 );
                 xmlMultistatus.Add(xmlResponse);

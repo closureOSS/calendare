@@ -7,6 +7,7 @@ using Calendare.Data.Models;
 using Calendare.Server.Api.Models;
 using Calendare.Server.Constants;
 using Calendare.Server.Repository;
+using Calendare.Server.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,9 +22,10 @@ public static partial class PropertiesDefinition
             // https://datatracker.ietf.org/doc/html/rfc5397.html#section-3
             // TODO: Apply workaround for iphones according to https://gitlab.com/davical-project/davical/-/commit/b4bcc6cc2570b0fccd53b72152afff023d769dbe
             Name = XmlNs.Dav + "current-user-principal",
+            IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.CurrentUser.Uri)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });
@@ -34,7 +36,7 @@ public static partial class PropertiesDefinition
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Owner.Uri}"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.Owner.Uri)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });
@@ -73,7 +75,39 @@ public static partial class PropertiesDefinition
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase)));
+                return Task.FromResult(PropertyUpdateResult.Success);
+            },
+        });
+        repo.Register(new DavProperty
+        {
+            // https://datatracker.ietf.org/doc/html/rfc4918#section-15.10
+            Name = XmlNs.Dav + "supportedlock",
+            GetValue = (prop, qry, resource, ctx) =>
+            {
+                switch (resource.ResourceType)
+                {
+                    case DavResourceType.Root:
+                    case DavResourceType.Unknown:
+                    case DavResourceType.Principal:
+                        break;
+                    default:
+                        prop.Add(XElementLockinfoExtensions.SupportedLock());
+                        break;
+                }
+                // prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.CurrentUser.Uri)));
+                return Task.FromResult(PropertyUpdateResult.Success);
+            },
+        });
+        repo.Register(new DavProperty
+        {
+            // https://datatracker.ietf.org/doc/html/rfc4918#section-15.8
+            Name = XmlNs.Dav + "lockdiscovery",
+            IsExpensive = true,
+            GetValue = (prop, qry, resource, ctx) =>
+            {
+                XElementLockinfoExtensions.AddActiveLocks(prop, davLock: null, resource);
+                // prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.CurrentUser.Uri)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });
@@ -85,8 +119,7 @@ public static partial class PropertiesDefinition
             GetValue = (prop, qry, resource, ctx) =>
             {
                 var xx = resource;
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Owner.Uri}"));
-                //prop.Add(new XElement(XmlNs.Dav + "href", "/caldav.php/family/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.Owner.Uri)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
             Matches = (resource, searchTerm) =>
@@ -101,7 +134,7 @@ public static partial class PropertiesDefinition
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Owner.Uri}"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.Owner.Uri)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
             Matches = (resource, searchTerm) =>
@@ -128,7 +161,7 @@ public static partial class PropertiesDefinition
                 }
                 else
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{principal.Uri}"));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, principal.Uri)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
@@ -171,7 +204,7 @@ public static partial class PropertiesDefinition
                 }
                 else
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{principal.Uri}"));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, principal.Uri)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
@@ -202,7 +235,7 @@ public static partial class PropertiesDefinition
             GetValue = (prop, qry, resource, ctx) =>
             {
                 // TODO: Concept of a default calender (default target for scheduling)
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Owner.Uri}{CollectionUris.DefaultCalendar}/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.Owner.Uri, CollectionUris.DefaultCalendar)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
             Update = IgnoreAmend,
@@ -220,7 +253,7 @@ public static partial class PropertiesDefinition
             GetValue = (prop, qry, resource, ctx) =>
             {
                 // TODO: Concept of a default calender (default target for scheduling)
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Owner.Uri}{CollectionUris.DefaultCalendar}/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.Owner.Uri, CollectionUris.DefaultCalendar)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
             Update = IgnoreAmend,
@@ -246,7 +279,7 @@ public static partial class PropertiesDefinition
                 var outbox = collections.FirstOrDefault();
                 if (outbox is not null)
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{outbox.Uri}"));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, outbox.Uri)));
                 }
                 return PropertyUpdateResult.Success;
             },
@@ -267,7 +300,7 @@ public static partial class PropertiesDefinition
                 var inbox = collections.FirstOrDefault();
                 if (inbox is not null)
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{inbox.Uri}"));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, inbox.Uri)));
                 }
                 return PropertyUpdateResult.Success;
             },
@@ -291,7 +324,7 @@ public static partial class PropertiesDefinition
                 {
                     if (col.ScheduleTransparency is null || string.Equals(col.ScheduleTransparency, ScheduleTransparency.Opaque, StringComparison.Ordinal))
                     {
-                        prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{col.Uri}"));
+                        prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, col.Uri)));
                     }
                 }
                 return PropertyUpdateResult.Success;
@@ -393,7 +426,7 @@ public static partial class PropertiesDefinition
                     }
                     else
                     {
-                        xmlPrincipal.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{ace.Grantee!.Uri}"));
+                        xmlPrincipal.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, ace.Grantee!.Uri)));
                     }
                     xmlAce.Add(xmlPrincipal);
                     var xmlGrant = new XElement(XmlNs.Dav + "grant");
@@ -447,7 +480,7 @@ public static partial class PropertiesDefinition
                 grants.Where(g => resource.Owner.Id != g.Grantor?.Id && grantTypeFilter.Contains(g.GrantType?.Confers, StringComparer.Ordinal)).ToList().ForEach(g => members.Add($"{resource.PathBase}/{g.Grantor?.Owner.Username}/"));
                 foreach (var member in members)
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", member));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(member)));
                 }
                 return PropertyUpdateResult.Success;
             },
@@ -468,7 +501,7 @@ public static partial class PropertiesDefinition
                 grants.Where(g => resource.Owner.Id != g.Grantor?.Id && grantTypeFilter.Contains(g.GrantType?.Confers, StringComparer.Ordinal)).ToList().ForEach(g => members.Add($"{resource.PathBase}/{g.Grantor?.Owner.Username}/"));
                 foreach (var member in members)
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", member));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(member)));
                 }
                 return PropertyUpdateResult.Success;
             },
@@ -525,13 +558,17 @@ public static partial class PropertiesDefinition
                 }
                 foreach (var memberUri in members)
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{memberUri}"));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, memberUri)));
                     // TODO: How to handle groups? RFC almost implies that no resolving of sub-groups is needed, really?
                 }
                 return PropertyUpdateResult.Success;
             },
             Update = async (prop, resource, collection, ctx) =>
             {
+                if (collection is null)
+                {
+                    return PropertyUpdateResult.BadRequest;
+                }
                 if (resource.Current?.PrincipalType is null || !string.Equals(resource.Current?.PrincipalType?.Label, PrincipalTypeCode.Group, StringComparison.Ordinal))
                 {
                     return PropertyUpdateResult.NotFound;
@@ -576,7 +613,7 @@ public static partial class PropertiesDefinition
                 }
                 foreach (var group in memberships)
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{group.GroupUri}"));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, group.GroupUri)));
                 }
                 return PropertyUpdateResult.Success;
             },
@@ -601,7 +638,7 @@ public static partial class PropertiesDefinition
                         if (rs.Grantee is not null && rs.Grants.Where(x => x.Privileges.HasFlag(PrivilegeMask.Write) || x.Privileges.HasFlag(PrivilegeMask.Read)).Any())
                         {
                             var sharee = new XElement(XmlNs.Dav + "sharee");
-                            sharee.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{rs.Grantee.Uri}"));
+                            sharee.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, rs.Grantee.Uri)));
                             sharee.Add(new XElement(XmlNs.Dav + "invite-accepted"));    // TODO: Other states of invitation (see 5.5)
                             var shareAccess = new XElement(XmlNs.Dav + "share-access");
                             if (rs.Grants.Any(x => x.Privileges == PrivilegeMask.All))
@@ -653,5 +690,5 @@ public static partial class PropertiesDefinition
         return repo;
     }
 
-    public static Task<PropertyUpdateResult> IgnoreAmend(XElement _, DavResource _1, Collection _2, HttpContext _3) => Task.FromResult(PropertyUpdateResult.Success);
+    public static Task<PropertyUpdateResult> IgnoreAmend(XElement _, DavResource _1, Collection? _2, HttpContext _3) => Task.FromResult(PropertyUpdateResult.Success);
 }

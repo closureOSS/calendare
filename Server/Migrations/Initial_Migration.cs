@@ -66,6 +66,7 @@ partial class MigrationRepository
             CollectionType = CollectionType.Principal,
             PrincipalType = PrincipalTypePerson,
             ParentContainerUri = "/",
+            Segment = admin.Username,
             Uri = $"/{admin.Username}/",
             DisplayName = BootstrapOptions.DisplayName ?? "Administrator",
             AuthorizedProhibit = PrivilegeMask.None,

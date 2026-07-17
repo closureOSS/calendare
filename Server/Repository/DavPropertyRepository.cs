@@ -16,7 +16,7 @@ public class DavPropertyRepository
         {
             var candidates = RegistredProperties
                 .FindAll(prop => prop.Name == propertyName && (prop.TypeRestrictions == null || prop.TypeRestrictions.Contains(resourceType)))
-                .OrderBy(prop => prop.TypeRestrictions?.Count() ?? 999);
+                .OrderBy(prop => prop.TypeRestrictions?.Count ?? 999);
             return candidates.FirstOrDefault();
         }
         return null;

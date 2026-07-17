@@ -178,6 +178,7 @@ public static partial class AdministrationApi
             }
             collection.OwnerId = resource.Owner.UserId;
             collection.Uri = resource.DavName;
+            collection.Segment = resource.Uri.TrailingSegment ?? "";
             collection.ParentContainerUri = resource.Uri.ParentCollectionPath;
             collection.Etag = resource.DavName.PrettyMD5Hash();
             collection.AuthorizedMask = resource.Owner.AuthorizedMask;

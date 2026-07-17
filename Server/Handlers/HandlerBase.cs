@@ -33,10 +33,16 @@ public abstract class HandlerBase
     {
         var response = httpContext.Response;
         response.StatusCode = (int)httpStatusCode;
+        if (httpStatusCode == HttpStatusCode.MethodNotAllowed)
+        {
+            response.Headers.Connection = "close";
+        }
         if (comment is not null)
         {
             response.ContentLength = Encoding.UTF8.GetByteCount(comment);
             response.ContentType = $"{MimeContentTypes.Plaintext}; {MimeContentTypes.Utf8}";
+            // TODO: Extend to other httpstatuscode (if the request contains a "expect" header )
+            // httpContext.Request.Headers.Expect.ToString().Contains("100-continue", StringComparison.OrdinalIgnoreCase)
             await response.WriteAsync(comment, cancellationToken: httpContext.RequestAborted);
             Recorder.SetResponseBody(comment);
         }
@@ -57,7 +63,7 @@ public abstract class HandlerBase
     public async Task WriteErrorNeedPrivilegeAsync(HttpContext httpContext, string uri, PrivilegeMask privileges)
     {
         var (xmlDoc, xmlNeedPrivileges) = HandlerExtensions.CreateNeedPrivilegeDocument();
-        xmlNeedPrivileges.AddMissingPrivileges(ExternalUrl(uri), privileges);
+        xmlNeedPrivileges.AddMissingPrivileges(ToEscapedUri(uri), privileges);
         await httpContext.Response.BodyXmlAsync(xmlDoc, HttpStatusCode.Forbidden, httpContext.RequestAborted);
         Recorder.SetResponseBody(xmlDoc);
     }
@@ -78,18 +84,18 @@ public abstract class HandlerBase
         }
     }
 
-    protected string ExternalUrl(string? uri) => $"{PathBase}{uri}";
+    protected string ToEscapedUri(string? uri) => UriUtils.ToEscapedUri(PathBase, uri);
 
-    protected void SetContentLocation(HttpResponse response, string? uri) => response.Headers.ContentLocation = ExternalUrl(uri);
+    protected void SetContentLocation(HttpResponse response, string? uri) => response.Headers.ContentLocation = ToEscapedUri(uri);
 
-    protected void SetLocation(HttpResponse response, string? uri) => response.Headers.Location = ExternalUrl(uri);
+    protected void SetLocation(HttpResponse response, string? uri) => response.Headers.Location = ToEscapedUri(uri);
 
-    protected void SetCapabilitiesHeader(HttpResponse response)
+    protected void SetCapabilitiesHeader(HttpResponse response, DavResourceType davResourceType)
     {
         // For 1,2,3 see https://datatracker.ietf.org/doc/html/rfc4918#section-18
         // as LOCK is not supported, only 1 and 3 are reported
         var capabilities = new List<string> {
-            "1", "3", "access-control",
+            "1", "2", "3", "access-control",
             "calendar-access",          // https://datatracker.ietf.org/doc/html/rfc4791#section-5.1
             "calendar-no-timezone",     // https://datatracker.ietf.org/doc/html/rfc7809#section-3.1.1"
             "extended-mkcol",           // https://datatracker.ietf.org/doc/html/rfc5689#section-3.1
@@ -118,11 +124,18 @@ public abstract class HandlerBase
             // https://bitfireat.github.io/webdav-push/draft-bitfire-webdav-push-00.html#name-service-detection
             capabilities.AddRange(["webdav-push"]);
         }
+        if (Env.HasFeatures(CalendareFeatures.LegacyWebDAV, response.HttpContext))
+        {
+            // this resets the capabilites to a minimal webdav set
+            capabilities = ["1", "2"];
+            response.Headers["MS-Author-Via"] = "DAV";
+        }
         response.Headers["DAV"] = capabilities
+            .Distinct(System.StringComparer.Ordinal)
             .Order(System.StringComparer.Ordinal)
             .Select((s, i) => new { Index = i, Capability = s })
             .GroupBy(x => x.Index / 7)
-            .Select(g => string.Join(',', g.Select(x => x.Capability)))
+            .Select(g => string.Join(", ", g.Select(x => x.Capability)))
             .ToArray();
     }
 }

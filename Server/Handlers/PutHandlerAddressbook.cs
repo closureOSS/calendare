@@ -20,7 +20,7 @@ namespace Calendare.Server.Handlers;
 
 public partial class PutHandler : IMethodHandler
 {
-    private async Task AmendAddressbookItem(HttpContext httpContext, DavResource resource)
+    private async Task AmendAddressbookItem(HttpContext httpContext, DavResource? resource)
     {
         var request = httpContext.Request;
 
@@ -28,7 +28,7 @@ public partial class PutHandler : IMethodHandler
         if (resource is null || resource.Parent is null || resource.ParentResourceType != DavResourceType.Addressbook)
         {
             // https://datatracker.ietf.org/doc/html/rfc4918#section-9.7.1
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Dav + "collection-must-exist", "The destination collection does not exist.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, Precondition.CollectionMustExist, "The destination collection does not exist.");
             return;
         }
         var resourceOriginal = resource.ToLight();
@@ -36,7 +36,7 @@ public partial class PutHandler : IMethodHandler
         if (ifNoneMatch && resource.Object is not null)
         {
             Log.Error("URI {uri} is already mapped (If-None-Match)", resource.Uri.Path);
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "if-none-match", "Existing resource matches 'If-None-Match' header - not accepted.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.IfNoneMatch, "Existing resource matches 'If-None-Match' header - not accepted.");
             return;
         }
         string? bodyContent;
@@ -47,7 +47,7 @@ public partial class PutHandler : IMethodHandler
         catch (InvalidDataException ex)
         {
             Log.Error(ex, "Failed to decode");
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, XmlNs.Dav + "content-encoding", "Unable to decode 'xxx' content encoding.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, Precondition.ContentEncoding, "Unable to decode 'xxx' content encoding.");
             return;
         }
         Recorder.SetRequestBody(bodyContent);
@@ -71,6 +71,7 @@ public partial class PutHandler : IMethodHandler
         var target = resource.Object ?? new();
         target.OwnerId = resource.Owner.UserId;
         target.ActualUserId = resource.CurrentUser.UserId;
+        target.Segment = resource.Uri.TrailingSegment!;
         target.Uri = resource.Uri.Path!;
         target.Uid = GetVCardId(vcard.ContactID.Value);
         target.Etag = vcfData.PrettyMD5Hash();
@@ -130,6 +131,7 @@ public partial class PutHandler : IMethodHandler
                 // create calendar
                 var collection = new Calendare.Data.Models.Collection
                 {
+                    Segment = resource.Uri.TrailingSegment!,
                     Uri = resource.Uri.Path!,
                     ParentContainerUri = $"{resource.Uri.ParentCollectionPath}",
                     ParentId = resource.Parent?.Id ?? resource.Owner.Id,
@@ -143,7 +145,7 @@ public partial class PutHandler : IMethodHandler
             }
             if (resource.Current is null)
             {
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "collection-must-exist", "The destination collection does not exist.");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.CollectionMustExist, "The destination collection does not exist.");
                 return;
             }
         }
@@ -151,7 +153,7 @@ public partial class PutHandler : IMethodHandler
         var collectionObjects = new List<CollectionObject>();
         if (vcards.Count < 1)
         {
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "valid-addressbook-data");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.ValidAddressbookData);
             return;
         }
         foreach (var vcard in vcards)
@@ -163,11 +165,13 @@ public partial class PutHandler : IMethodHandler
             var vcfData = Vcf.AsString(vcard, VCdVersion.V3_0);
             var etag = vcfData.PrettyMD5Hash();
             var displayName = vcard.DisplayNames?.FirstOrDefault();
+            var basename = $"{GetVCardIdUriSafe(vcard.ContactID?.Value)}.vcf";
             var collectionObject = new CollectionObject
             {
                 OwnerId = resource.Owner.UserId,
                 ActualUserId = resource.CurrentUser.UserId,
-                Uri = $"{resource.Uri.Path!}{GetVCardIdUriSafe(vcard.ContactID?.Value)}.vcf",
+                Segment = basename,
+                Uri = $"{resource.Uri.Path!}{basename}",
                 Uid = GetVCardId(vcard.ContactID?.Value),
                 Etag = etag,
                 RawData = vcfData,

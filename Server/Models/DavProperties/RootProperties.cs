@@ -31,6 +31,29 @@ public static partial class PropertiesDefinition
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });
+        repo.Register(new DavProperty
+        {
+            // https://datatracker.ietf.org/doc/html/rfc4918#section-15.1
+            Name = XmlNs.Dav + "creationdate",
+            TypeRestrictions = [DavResourceType.Root],
+            // IsExpensive = true,
+            GetValue = (prop, qry, resource, ctx) =>
+            {
+                prop.Value = "2020-02-20T20:20:20Z";
+                return Task.FromResult(PropertyUpdateResult.Success);
+            },
+        });
+        repo.Register(new DavProperty
+        {
+            // https://datatracker.ietf.org/doc/html/rfc4918#section-15.7
+            Name = XmlNs.Dav + "getlastmodified",
+            TypeRestrictions = [DavResourceType.Root],
+            GetValue = (prop, qry, resource, ctx) =>
+            {
+                prop.Value = "Thu, 20 Feb 2020 20:20:20 GMT";
+                return Task.FromResult(PropertyUpdateResult.Success);
+            },
+        });
         // repo.Register(new DavProperty
         // {
         //     // https://datatracker.ietf.org/doc/html/rfc3744#section-5.4

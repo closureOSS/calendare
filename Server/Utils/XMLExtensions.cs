@@ -42,9 +42,9 @@ public static class XMLExtensions
     {
         response.ContentType = $"{MimeContentTypes.Xml}; {MimeContentTypes.Utf8}";
         response.StatusCode = (int)httpStatusCode;
-        doc.Declaration = new XDeclaration("1.0", "utf-8", null);
+        doc.Declaration = new XDeclaration("1.0", "utf-8", standalone: null);
         using StringWriter writer = new Utf8StringWriter();
-        doc.Save(writer, SaveOptions.None);
+        await doc.SaveAsync(writer, SaveOptions.None, ct);
         var docContent = writer.ToString();
         response.ContentLength = Encoding.UTF8.GetByteCount(docContent);
         await response.WriteAsync(docContent, ct);
@@ -52,7 +52,7 @@ public static class XMLExtensions
 
     public static string XMLToString(this XDocument xml)
     {
-        xml.Declaration = new XDeclaration("1.0", "utf-8", null);
+        xml.Declaration = new XDeclaration("1.0", "utf-8", standalone: null);
         using StringWriter writer = new Utf8StringWriter();
         xml.Save(writer, SaveOptions.None);
         var content = writer.ToString();

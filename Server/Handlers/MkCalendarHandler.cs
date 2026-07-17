@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Calendare.Data.Models;
 using Calendare.Server.Constants;
+using Calendare.Server.Middleware;
 using Calendare.Server.Models;
 using Calendare.Server.Recorder;
 using Calendare.Server.Repository;
@@ -27,12 +28,10 @@ namespace Calendare.Server.Handlers;
 /// </remarks>
 public class MkCalendarHandler : HandlerBase, IMethodHandler
 {
-    private readonly ResourceRepository ResourceRepository;
     private readonly CollectionRepository CollectionRepository;
 
-    public MkCalendarHandler(DavEnvironmentRepository env, ResourceRepository resourceRepository, CollectionRepository collectionRepository, RecorderSession recorder) : base(env, recorder)
+    public MkCalendarHandler(DavEnvironmentRepository env, CollectionRepository collectionRepository, RecorderSession recorder) : base(env, recorder)
     {
-        ResourceRepository = resourceRepository;
         CollectionRepository = collectionRepository;
     }
 
@@ -63,14 +62,14 @@ public class MkCalendarHandler : HandlerBase, IMethodHandler
         }
 
         string parentCollectionPath = resource.Uri.ParentCollectionPath!;
-        string collectionPath = resource.Uri.Path!;
+        string collectionPath = UriUtils.ToFolderPath(resource.Uri.Path);
         string? displayName = resource.Uri.ItemName;
 
         var (xmlRequestDoc, xmlSuccess) = await request.BodyAsXmlAsync(httpContext.RequestAborted);
         if (xmlSuccess == false)
         {
             SetContentLocation(response, resource.Uri.Path);
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "invalid-xml");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, Precondition.InvalidXml);
             return;
         }
         List<DavPropertyStatic> properties = [];
@@ -103,14 +102,14 @@ public class MkCalendarHandler : HandlerBase, IMethodHandler
                 else
                 {
                     SetContentLocation(response, resource.Uri.Path);
-                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "invalid-xml");
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, Precondition.InvalidXml);
                     return;
                 }
             }
         }
-        if (!(resource.ParentResourceType == Models.DavResourceType.Principal || resource.ParentResourceType == Models.DavResourceType.Container))
+        if (!(resource.ParentResourceType == DavResourceType.Principal || resource.ParentResourceType == DavResourceType.Container))
         {
-            if (resource.ParentResourceType != DavResourceType.Root || (resource.ParentResourceType == DavResourceType.Root && resource.Uri.Collection is not null && resource.Uri.Collection?.Count > 1))
+            if (resource.ParentResourceType != DavResourceType.Root || (resource.ParentResourceType == DavResourceType.Root && resource.Uri.IsSubResource == true))
             {
 
                 // https://datatracker.ietf.org/doc/html/rfc4918#section-9.3.1
@@ -119,11 +118,13 @@ public class MkCalendarHandler : HandlerBase, IMethodHandler
                 return;
             }
         }
+        var newUri = new CaldavUri(collectionPath);
         var collection = new Collection
         {
             ParentContainerUri = parentCollectionPath,
             ParentId = resource.Parent?.Id ?? resource.Owner.Id,
-            Uri = collectionPath,
+            Segment = newUri.TrailingSegment!,
+            Uri = newUri.Path!,
             DisplayName = displayName,
             CollectionType = string.Equals(request.Method, "MKCALENDAR", StringComparison.Ordinal) ? CollectionType.Calendar : CollectionType.Collection,
             Etag = $"{resource.Owner!.Id}{resource.Uri.Path}".PrettyMD5Hash(),
@@ -132,6 +133,15 @@ public class MkCalendarHandler : HandlerBase, IMethodHandler
         var newResource = resource.Graft(collection);
         var propertyRegistry = httpContext.RequestServices.GetRequiredService<DavPropertyRepository>();
         var status = await PropPatchHandler.UpdateProperties(collection, propertyRegistry, newResource, properties, httpContext);
+        if (resource?.Parent?.CollectionType == CollectionType.Collection)
+        {
+            if (collection.CollectionType == CollectionType.Calendar || collection.CollectionType == CollectionType.Addressbook)
+            {
+                Log.Error("Failed to create nested collection {collection}", resource.Uri.Path);
+                await WriteStatusAsync(httpContext, HttpStatusCode.Forbidden);
+                return;
+            }
+        }
         if (status.Failure == false)
         {
             try
@@ -148,12 +158,12 @@ public class MkCalendarHandler : HandlerBase, IMethodHandler
             }
             catch (DbUpdateException e)
             {
-                Log.Error("Failed to create collection {collection}: {error}", resource.Uri.Path, e.InnerException?.Message ?? e.Message);
+                Log.Error("Failed to create collection {collection}: {error}", resource?.Uri.Path, e.InnerException?.Message ?? e.Message);
                 await WriteStatusAsync(httpContext, HttpStatusCode.Forbidden);
             }
             catch (Exception e)
             {
-                Log.Error(e, "Failed to create collection {collection}", resource.Uri.Path);
+                Log.Error(e, "Failed to create collection {collection}", resource?.Uri.Path);
                 await WriteStatusAsync(httpContext, HttpStatusCode.Forbidden);
             }
         }

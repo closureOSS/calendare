@@ -6,6 +6,7 @@ using System.Xml.Linq;
 using Calendare.Server.Constants;
 using Calendare.Server.Models;
 using Calendare.Server.Repository;
+using Calendare.Server.Utils;
 using Microsoft.AspNetCore.Http;
 
 namespace Calendare.Server.Handlers;
@@ -82,8 +83,8 @@ public static class HandlerExtensions
                 xmlPropsNotFound.Add(xmlProp);
             }
         }
-
-        var xmlResponse = new XElement(XmlNs.Dav + "response", new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{href ?? resource.DavName}"));
+        var hrefResponse = UriUtils.ToEscapedUri(resource.PathBase, href ?? resource.DavName);
+        var xmlResponse = new XElement(XmlNs.Dav + "response", new XElement(XmlNs.Dav + "href", hrefResponse));
         if (xmlPropsSuccess.Elements().Any())
         {
             xmlResponse.Add(xmlPropsSuccess.Parent);

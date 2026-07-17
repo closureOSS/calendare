@@ -18,7 +18,7 @@ namespace Calendare.Server.Handlers;
 public partial class PutHandler : IMethodHandler
 {
     // https://datatracker.ietf.org/doc/html/rfc4791#section-5.3.2
-    private async Task AmendCalenderItem(HttpContext httpContext, DavResource resource)
+    private async Task AmendCalenderItem(HttpContext httpContext, DavResource? resource)
     {
         var request = httpContext.Request;
 
@@ -29,7 +29,7 @@ public partial class PutHandler : IMethodHandler
             && resource.ParentResourceType != DavResourceType.Calendar))
         {
             // https://datatracker.ietf.org/doc/html/rfc4918#section-9.7.1
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Dav + "collection-must-exist", "The destination collection does not exist.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, Precondition.CollectionMustExist, "The destination collection does not exist.");
             return;
         }
         var resourceOriginal = resource.ToLight();
@@ -37,7 +37,7 @@ public partial class PutHandler : IMethodHandler
         if (ifNoneMatch && resource.Object is not null)
         {
             Log.Error("URI {uri} is already mapped (If-None-Match)", resource.Uri.Path);
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "if-none-match", "Existing resource matches 'If-None-Match' header - not accepted.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.IfNoneMatch, "Existing resource matches 'If-None-Match' header - not accepted.");
             return;
         }
         await ItemRepository.LoadCalendarObject(resource.Object, httpContext.RequestAborted);
@@ -50,20 +50,20 @@ public partial class PutHandler : IMethodHandler
         catch (InvalidDataException ex)
         {
             Log.Error(ex, "Failed to decode {contentEncoding}", request.Headers.ContentEncoding);
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, XmlNs.Dav + "content-encoding", $"Unable to decode '{request.Headers.ContentEncoding}' content encoding.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, Precondition.ContentEncoding, $"Unable to decode '{request.Headers.ContentEncoding}' content encoding.");
             return;
         }
         Recorder.SetRequestBody(bodyContent);
 
         var originalBodyContent = resource.Object?.RawData;
-        var parseResult = CalendarBuilder.Parser.TryParse(bodyContent, out var vCalendar, $"{httpContext.Request.GetFullPath()}");
+        var parseResult = CalendarBuilder.Parser.TryParse(bodyContent, out var vCalendar, $"{httpContext.Request.GetFullPath(PathBase)}");
         if (!parseResult || vCalendar is null)
         {
             Log.Error("Parsing of request body text/calendar failed {errMsg}", parseResult.ErrorMessage);
             switch (parseResult.ErrorCategory)
             {
                 case VSyntaxReader.Properties.DeserializeErrorCategory.Syntax:
-                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Caldav + "valid-calendar-data", parseResult.ErrorMessage);
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, Precondition.ValidCalendarData, parseResult.ErrorMessage);
                     break;
 
                 case VSyntaxReader.Properties.DeserializeErrorCategory.NoContent:
@@ -77,7 +77,7 @@ public partial class PutHandler : IMethodHandler
         if (!vCalendarUnique.IsValid)
         {
             Log.Error("Calendar contains multiple unrelated components");
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Caldav + "valid-calendar-object-resource", "Calendar contains multiple unrelated components");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.ValidCalendarObjectResource, "Calendar contains multiple unrelated components");
             return;
         }
         VCalendarUnique? vPreviousCalendar = null;
@@ -124,7 +124,7 @@ public partial class PutHandler : IMethodHandler
         // CalDAV does not define the result of a PUT on a collection.  We treat that as an import
         var bodyContent = await request.BodyAsStringAsync(httpContext.RequestAborted);
         Recorder.SetRequestBody(bodyContent);
-        var parseResult = CalendarBuilder.Parser.TryParse(bodyContent, out var vCalendar, $"{httpContext.Request.GetFullPath()}");
+        var parseResult = CalendarBuilder.Parser.TryParse(bodyContent, out var vCalendar, $"{httpContext.Request.GetFullPath(PathBase)}");
         if (!parseResult || vCalendar is null)
         {
             Log.Error("Failed to parse {errMsg}", parseResult.ErrorMessage);
@@ -139,8 +139,9 @@ public partial class PutHandler : IMethodHandler
                 // create calendar
                 var collection = new Calendare.Data.Models.Collection
                 {
+                    Segment = resource.Uri.TrailingSegment!,
                     Uri = resource.Uri.Path!,
-                    ParentContainerUri = $"{resource.Uri.ParentCollectionPath}",
+                    ParentContainerUri = resource.Uri.ParentCollectionPath,
                     ParentId = resource.Parent?.Id ?? resource.Owner.Id,
                     DisplayName = vCalendar.CalendarName,
                     Description = vCalendar.CalendarDescription,
@@ -154,7 +155,7 @@ public partial class PutHandler : IMethodHandler
             }
             if (resource.Current is null)
             {
-                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "collection-must-exist", "The destination collection does not exist.");
+                await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.CollectionMustExist, "The destination collection does not exist.");
                 return;
             }
         }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Calendare.Server.Constants;
 using Calendare.Server.Repository;
+using Calendare.Server.Utils;
 
 namespace Calendare.Server.Models.DavProperties;
 
@@ -63,6 +64,35 @@ public static partial class PropertiesDefinition
         });
         repo.Register(new DavProperty
         {
+            // https://datatracker.ietf.org/doc/html/rfc4918#section-15.1
+            Name = XmlNs.Dav + "creationdate",
+            TypeRestrictions = [DavResourceType.Principal],
+            // IsExpensive = true,
+            GetValue = (prop, qry, resource, ctx) =>
+            {
+                if (resource.Owner is not null)
+                {
+                    prop.Value = resource.Owner.Created.ToRfc3339();
+                }
+                return Task.FromResult(PropertyUpdateResult.Success);
+            },
+        });
+        repo.Register(new DavProperty
+        {
+            // https://datatracker.ietf.org/doc/html/rfc4918#section-15.7
+            Name = XmlNs.Dav + "getlastmodified",
+            TypeRestrictions = [DavResourceType.Principal],
+            GetValue = (prop, qry, resource, ctx) =>
+            {
+                if (resource.Owner is not null)
+                {
+                    prop.Value = resource.Owner.Modified.ToRfc2616();
+                }
+                return Task.FromResult(PropertyUpdateResult.Success);
+            },
+        });
+        repo.Register(new DavProperty
+        {
             // https://datatracker.ietf.org/doc/html/rfc3253#section-3.1.3
             Name = XmlNs.Dav + "supported-method-set",
             TypeRestrictions = [DavResourceType.Principal],
@@ -84,11 +114,12 @@ public static partial class PropertiesDefinition
         {
             // https://datatracker.ietf.org/doc/html/rfc3744#section-5.1
             Name = XmlNs.Dav + "owner",
+            IsExpensive = true,
             TypeRestrictions = [DavResourceType.Principal],
             GetValue = (prop, qry, resource, ctx) =>
             {
                 var principal = resource.Owner;// TODO: HACK REPLACE
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{principal.Uri}"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, principal.Uri)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });
@@ -104,7 +135,7 @@ public static partial class PropertiesDefinition
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.Notifications}/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.CurrentUser.Uri, CollectionUris.Notifications)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         }, XmlNs.CalenderServer + "notification-URL");
@@ -115,7 +146,7 @@ public static partial class PropertiesDefinition
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.DefaultCalendar}/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.CurrentUser.Uri, CollectionUris.DefaultCalendar)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });
@@ -126,7 +157,7 @@ public static partial class PropertiesDefinition
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.DefaultAddressbook}/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.CurrentUser.Uri, CollectionUris.DefaultAddressbook)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });
@@ -137,7 +168,7 @@ public static partial class PropertiesDefinition
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.DefaultCalendar}/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.CurrentUser.Uri, CollectionUris.DefaultCalendar)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });
@@ -148,7 +179,7 @@ public static partial class PropertiesDefinition
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.CurrentUser.Uri}{CollectionUris.DefaultCalendar}/"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.CurrentUser.Uri, CollectionUris.DefaultCalendar)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });

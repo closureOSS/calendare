@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Calendare.Data.Models;
 using Calendare.Server.Constants;
 using Microsoft.EntityFrameworkCore;
-using NodaTime;
 
 namespace Calendare.Server.Migrations;
 
@@ -29,6 +28,7 @@ partial class MigrationRepository
             PrincipalType = PrincipalTypeGroup,
             ParentId = root.Id,
             ParentContainerUri = $"/{BootstrapOptions.Username ?? "admin"}/",
+            Segment = userName,
             Uri = $"/{BootstrapOptions.Username ?? "admin"}/{userName}/",
             DisplayName = displayName,
             AuthorizedProhibit = PrivilegeMask.All,

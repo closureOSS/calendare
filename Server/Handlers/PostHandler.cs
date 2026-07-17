@@ -70,10 +70,11 @@ public partial class PostHandler : HandlerBase, IMethodHandler
             // case DavResourceType.Principal:
             case DavResourceType.CalendarItem:
             case DavResourceType.AddressbookItem:
-                // case DavResourceType.Addressbook:
+            case DavResourceType.BlobItem:
                 Log.Error("POST on this resource type {uri} not supported", request.GetEncodedUrl());
                 await WriteStatusAsync(httpContext, HttpStatusCode.Forbidden);
                 return;
+
             default:
                 break;
         }
@@ -91,7 +92,7 @@ public partial class PostHandler : HandlerBase, IMethodHandler
             default:
                 if (resource.Current is not null)
                 {
-                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "supported-calendar-data", $"Incorrect content type for calendar: {contentType?.MediaType}");
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.SupportedCalendarData, $"Incorrect content type for calendar: {contentType?.MediaType}");
                     return;
                 }
                 break;
@@ -141,6 +142,6 @@ public partial class PostHandler : HandlerBase, IMethodHandler
             await postHandlerType(httpContext, resource, xmlRequestDoc);
             return;
         }
-        await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "supported-report", $"\"{xmlRequestDoc.Root.Name}\" is not supported by post handler.");
+        await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, Precondition.SupportedReport, $"\"{xmlRequestDoc.Root.Name}\" is not supported by post handler.");
     }
 }

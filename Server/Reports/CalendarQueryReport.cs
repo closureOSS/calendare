@@ -30,7 +30,11 @@ public class CalendarQueryReport : ReportBase, IReport
         filterEvaluator.Compile(CalendarFilter.Parse(xmlRequestDoc.Root));
 
         // TODO: Implement checks for a valid starting resource
-        if (resource.ResourceType == DavResourceType.Addressbook || resource.ResourceType == DavResourceType.AddressbookItem || resource.ResourceType == DavResourceType.Unknown)
+        if (resource.ResourceType == DavResourceType.Addressbook ||
+            resource.ResourceType == DavResourceType.AddressbookItem ||
+            resource.ResourceType == DavResourceType.BlobItem ||
+            resource.ResourceType == DavResourceType.Unknown
+        )
         {
             Log.Error("Current resource {uri}/{resourcetype} not supported", resource.DavName, resource.ResourceType);
             return new(HttpStatusCode.BadRequest);

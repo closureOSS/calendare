@@ -35,6 +35,7 @@ public static class StartupExtensions
             .AddScoped<CollectionRepository>()
             .AddScoped<ResourceRepository>()
             .AddScoped<ItemRepository>()
+            .AddScoped<MoveCopyRepository>()
             .AddScoped<MailboxRepository>()
             .AddScoped<PushSubscriptionRepository>()
             .AddScoped<RecorderSession>()
@@ -44,6 +45,9 @@ public static class StartupExtensions
             .AddScoped<PutHandler>()
             .AddScoped<PostHandler>()
             .AddScoped<MoveHandler>()
+            .AddScoped<CopyHandler>()
+            .AddScoped<LockHandler>()
+            .AddScoped<UnlockHandler>()
             .AddScoped<DeleteHandler>()
             .AddScoped<GetHandler>()
             .AddScoped<PropFindHandler>()
@@ -78,6 +82,7 @@ public static class StartupExtensions
             o.Handlers["REPORT"] = typeof(ReportHandler);
             o.Handlers["DELETE"] = typeof(DeleteHandler);
             o.Handlers["MOVE"] = typeof(MoveHandler);
+            o.Handlers["COPY"] = typeof(CopyHandler);
             o.Handlers["GET"] = typeof(GetHandler);
             o.Handlers["PUT"] = typeof(PutHandler);
             o.Handlers["HEAD"] = typeof(GetHandler);
@@ -88,16 +93,13 @@ public static class StartupExtensions
             o.Handlers["ACL"] = typeof(AclHandler);
             o.Handlers["SCHEDULE#GET"] = typeof(ScheduleGetHandler);
             o.Handlers["SCHEDULE#POST"] = typeof(SchedulePostHandler);
+            o.Handlers["LOCK"] = typeof(LockHandler);
+            o.Handlers["UNLOCK"] = typeof(UnlockHandler);
             //
             // Not supported, but known methods:
             //
-            // LOCK, UNLOCK - https://datatracker.ietf.org/doc/html/rfc4918#section-6
-            o.UnsupportedMethods.Add("LOCK");
-            o.UnsupportedMethods.Add("UNLOCK");
             // BIND - https://datatracker.ietf.org/doc/html/rfc5842
             o.UnsupportedMethods.Add("BIND");
-            // COPY - https://datatracker.ietf.org/doc/html/rfc4918#section-9.8
-            o.UnsupportedMethods.Add("COPY");
 
             //
             // Reports

@@ -30,60 +30,63 @@ public class CredentialRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<UsrCredential?> GetCredential(Principal principal, int credentialId, CancellationToken cancellationToken)
+    public async Task<(UsrCredential? Credential, bool Multiple)> GetCredential(CredentialRef credentialRef, CancellationToken cancellationToken)
     {
-        return await Db.UsrCredential
+        var credentials = await Db.UsrCredential
             .Include(c => c.CredentialType)
-            .Where(uc => uc.UsrId == principal.UserId && uc.Id == credentialId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Where(uc => uc.UsrId == credentialRef.Principal.UserId && uc.Accesskey == credentialRef.Subject
+                && (credentialRef.CredentialType == null || uc.CredentialType.Label == credentialRef.CredentialType))
+            .ToListAsync(cancellationToken);
+        if (credentials is null || credentials.Count == 0)
+        {
+            return (null, false);
+        }
+        if (credentials.Count > 1)
+        {
+            return (null, true);
+        }
+        return (credentials[0], false);
     }
 
-    public async Task<UsrCredential?> UpdateLock(Principal principal, int credentialId, bool isLocked, CancellationToken cancellationToken)
+    public async Task<UsrCredential?> UpdateLock(CredentialRef credentialRef, bool doLock, CancellationToken cancellationToken)
     {
-        var credential = await GetCredential(principal, credentialId, cancellationToken);
-        if (credential is null)
-        {
-            return null;
-        }
-        if ((credential.Locked is not null && isLocked) || (credential.Locked is null && !isLocked))
+        var (credential, _) = await GetCredential(credentialRef, cancellationToken);
+        if (credential is null) return null;
+        if ((credential.Locked is not null && doLock) || (credential.Locked is null && !doLock))
         {
             return credential;
         }
-        credential.Locked = isLocked ? SystemClock.Instance.GetCurrentInstant() : null;
+        credential.Locked = doLock ? SystemClock.Instance.GetCurrentInstant() : null;
         await Db.SaveChangesAsync(cancellationToken);
         return credential;
     }
 
-    public async Task<UsrCredential?> Reset(Principal principal, int credentialId, string username, string? password, CancellationToken cancellationToken)
+    public async Task<UsrCredential?> Reset(CredentialRef credentialRef, string? passwordHash, CancellationToken cancellationToken)
     {
-        var credential = await GetCredential(principal, credentialId, cancellationToken);
-        if (credential is null)
+        var (credential, _) = await GetCredential(credentialRef, cancellationToken);
+        if (credential is null || credential.CredentialTypeId == CredentialTypes.JwtBearer)
         {
             return null;
         }
-        if (!string.Equals(credential.Accesskey, username, System.StringComparison.Ordinal))
-        {
-            Log.Error("Username mismatch {username} differs from credential {credentialUsername}", username, credential.Accesskey);
-            return null;
-        }
-        credential.Secret = password;
+        credential.Secret = passwordHash;
         credential.Modified = SystemClock.Instance.GetCurrentInstant();
         await Db.SaveChangesAsync(cancellationToken);
         return credential;
     }
 
-    public async Task Delete(Principal principal, int credentialId, CancellationToken cancellationToken)
+    public async Task<bool> Delete(CredentialRef credentialRef, CancellationToken cancellationToken)
     {
-        var credential = await GetCredential(principal, credentialId, cancellationToken);
+        var (credential, multiple) = await GetCredential(credentialRef, cancellationToken);
         if (credential is null)
         {
-            return; // not found is a success
+            return multiple == false;   // not found is treated as success
         }
         Db.UsrCredential.Remove(credential);
         await Db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
-    public async Task<UsrCredential?> Create(Principal principal, UsrCredentialType credentialType, string username, string? password, CancellationToken cancellationToken)
+    public async Task<UsrCredential?> Create(Principal principal, UsrCredentialType credentialType, string username, string? passwordHash, string? description, CancellationToken cancellationToken)
     {
         var existing = await Db.UsrCredential.FirstOrDefaultAsync(c => c.Accesskey == username && c.CredentialTypeId == credentialType.Id, cancellationToken);
         if (existing is not null)
@@ -96,11 +99,26 @@ public class CredentialRepository
             UsrId = principal.UserId,
             CredentialTypeId = credentialType.Id,
             Accesskey = username,
-            Secret = password,
+            Secret = passwordHash,
+            Description = description,
             Validity = new Interval(SystemClock.Instance.GetCurrentInstant(), Instant.MaxValue),
         };
         Db.UsrCredential.Add(credential);
         await Db.SaveChangesAsync(cancellationToken);
+        await Db.Entry(credential).Reference(c => c.CredentialType).LoadAsync(cancellationToken);
+        return credential;
+    }
+
+    public static UsrCredential BuildJwtBearerCredential(Usr user, string accessKey, string issuer)
+    {
+        var credential = new UsrCredential
+        {
+            Usr = user,
+            CredentialTypeId = CredentialTypes.JwtBearer,
+            Accesskey = accessKey,
+            Issuer = issuer,
+            Validity = new Interval(SystemClock.Instance.GetCurrentInstant(), Instant.MaxValue),
+        };
         return credential;
     }
 
@@ -111,14 +129,7 @@ public class CredentialRepository
         {
             return null;
         }
-        var credential = new UsrCredential
-        {
-            Usr = user,
-            CredentialTypeId = CredentialTypes.JwtBearer,
-            Accesskey = sub,
-            Secret = issuer,
-            Validity = new Interval(SystemClock.Instance.GetCurrentInstant(), Instant.MaxValue),
-        };
+        var credential = BuildJwtBearerCredential(user, sub, issuer);
         Db.UsrCredential.Add(credential);
         await Db.SaveChangesAsync(ct);
         return credential;
@@ -131,14 +142,7 @@ public class CredentialRepository
         {
             return null;
         }
-        var credential = new UsrCredential
-        {
-            Usr = user,
-            CredentialTypeId = CredentialTypes.JwtBearer,
-            Accesskey = sub,
-            Secret = issuer,
-            Validity = new Interval(SystemClock.Instance.GetCurrentInstant(), Instant.MaxValue),
-        };
+        var credential = BuildJwtBearerCredential(user, sub, issuer);
         Db.UsrCredential.Add(credential);
         await Db.SaveChangesAsync(ct);
         return credential;

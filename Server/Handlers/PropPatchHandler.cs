@@ -27,10 +27,12 @@ namespace Calendare.Server.Handlers;
 public class PropPatchHandler : HandlerBase, IMethodHandler
 {
     private readonly CollectionRepository CollectionRepository;
+    private readonly ItemRepository ItemRepository;
 
-    public PropPatchHandler(DavEnvironmentRepository env, CollectionRepository collectionRepository, RecorderSession recorder) : base(env, recorder)
+    public PropPatchHandler(DavEnvironmentRepository env, CollectionRepository collectionRepository, ItemRepository itemRepository, RecorderSession recorder) : base(env, recorder)
     {
         CollectionRepository = collectionRepository;
+        ItemRepository = itemRepository;
     }
 
     public async Task HandleRequestAsync(HttpContext httpContext, DavResource resource)
@@ -48,7 +50,7 @@ public class PropPatchHandler : HandlerBase, IMethodHandler
             // response.Headers.ETag = resource.Current?.Etag;
             SetEtagHeader(response, resource.Current?.Etag);
             // response.Headers.ContentLocation = $"{PathBase}{resource.Uri.Path}";
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "invalid-xml");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, Precondition.InvalidXml);
             return;
         }
         if (xmlRequest.Root.Name != XmlNs.Dav + "propertyupdate")
@@ -59,7 +61,7 @@ public class PropPatchHandler : HandlerBase, IMethodHandler
         Recorder.SetRequestBody(xmlRequest);
         // if (resource.Exists == false)
         // {
-        //     await WriteErrorXmlAsync(httpContext, HttpStatusCode.NotFound, XmlNs.Dav + "must-exist", "That resource is not present on server.");
+        //     await WriteErrorXmlAsync(httpContext, HttpStatusCode.NotFound, Precondition.MustExist, "That resource is not present on server.");
         //     return;
         // }
         if (!resource.Privileges.HasAnyOf(PrivilegeMask.WriteProperties))
@@ -93,11 +95,19 @@ public class PropPatchHandler : HandlerBase, IMethodHandler
                 }
                 break;
         }
+        var isTargetTypeObject = resource.ResourceType == DavResourceType.BlobItem;
         Collection? collection = await CollectionRepository.GetAsync(resource.DavName, httpContext.RequestAborted);
         var status = await UpdateProperties(collection, propertyRegistry, resource, propsAmend, httpContext);
-        if (!status.Failure && collection is not null)
+        if (!status.Failure)
         {
-            await CollectionRepository.UpdateAsync(collection, httpContext.RequestAborted);
+            if (collection is not null)
+            {
+                await CollectionRepository.UpdateAsync(collection, httpContext.RequestAborted);
+            }
+            if (isTargetTypeObject && resource.Object is not null)
+            {
+                await ItemRepository.UpdateWithoutJournalAsync(resource.Object, httpContext.RequestAborted);
+            }
         }
         var xmlResponse = Response(resource.DavName, status);
         xmlMultistatus.Add(xmlResponse);
@@ -109,13 +119,14 @@ public class PropPatchHandler : HandlerBase, IMethodHandler
     public static async Task<DavPatchStatus> UpdateProperties(Collection? collection, DavPropertyRepository propertyRegistry, DavResource resource, List<DavPropertyStatic> propsAmend, HttpContext httpContext)
     {
         var status = new DavPatchStatus { Properties = propsAmend, };
-        if (collection is null)
-        {
-            status.Failure = true;
-            status.ResponseDescription = "Collection was not found";
-            status.Error = XmlNs.Dav + "todo---not-found";
-            return status;
-        }
+        // TODO:
+        // if (collection is null)
+        // {
+        //     status.Failure = true;
+        //     status.ResponseDescription = "Collection was not found";
+        //     status.Error = Precondition.CollectionMustExist;
+        //     return status;
+        // }
         foreach (var prop in propsAmend)
         {
             var propFunc = propertyRegistry.Property(prop.Name, resource.ResourceType);
@@ -177,7 +188,7 @@ public class PropPatchHandler : HandlerBase, IMethodHandler
 
     private XElement Response(string href, DavPatchStatus status)
     {
-        var xmlResponse = new XElement(XmlNs.Dav + "response", new XElement(XmlNs.Dav + "href", ExternalUrl(href)));
+        var xmlResponse = new XElement(XmlNs.Dav + "response", new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(PathBase, href)));
         return PropStatResponse(xmlResponse, status);
     }
 

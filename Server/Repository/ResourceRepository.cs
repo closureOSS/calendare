@@ -8,6 +8,7 @@ using Calendare.Data.Models;
 using Calendare.Server.Constants;
 using Calendare.Server.Middleware;
 using Calendare.Server.Models;
+using Calendare.Server.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -117,6 +118,7 @@ public class ResourceRepository
         return result;
     }
 
+    // TODO: Only used by sync report.. maybe replace ?!
     public async Task<List<DavResource>> ListChildrenAsResourcesAsync(DavResource parent, CancellationToken ct)
     {
         if (parent is null)
@@ -152,7 +154,59 @@ public class ResourceRepository
         return result;
     }
 
-    public async Task<List<DavResource>> ListChildObjectsAsResourcessync(DavResource parent, CancellationToken ct)
+    public async Task<DavResourceNode> ListChildrenAsResourcesAsync(DavResourceNode root, DavResource parent, int depth, CancellationToken ct)
+    {
+        if (parent is null)
+        {
+            return root;
+        }
+        var childrenQuery = Db.Collection
+            .Include(c => c.Properties)
+            .Include(c => c.Owner)
+            .Where(c => c.OwnerId == parent.Owner.UserId)
+            ;
+        if (parent.Current is null || depth > 1)
+        {
+            childrenQuery = childrenQuery.Where(c => c.OwnerId == parent.Owner.UserId);
+        }
+        else
+        {
+            childrenQuery = childrenQuery.Where(c => c.ParentId == parent.Current.Id);
+        }
+        var children = await childrenQuery.OrderBy(c => c.Uri).ToListAsync(ct);
+        foreach (var child in children)
+        {
+            var uri = new CaldavUri(child.Uri);
+            if (string.Equals(parent.DavName, uri.Path, StringComparison.InvariantCulture))
+            {
+                parent.Current = child;
+            }
+            else
+            {
+                var resource = new DavResource(uri)
+                {
+                    CurrentUser = parent.CurrentUser,
+                    Owner = parent.Owner,
+                    DavName = child.Uri,
+                    PathBase = PathBase,
+                    DavEtag = child.Etag,
+                    Exists = true,
+                    Current = child,
+                    ParentResourceType = CollectionType(parent.Current),
+                    ResourceType = child.CollectionType.ToResourceType(),
+                    Privileges = parent.Privileges,   // TODO: Inherit is not okay, should have unmodified privileges ???
+                };
+                var nodeParent = root.Add(resource);
+                if (nodeParent is not null)
+                {
+                    resource.Parent = nodeParent.Node.Current;
+                }
+            }
+        }
+        return root;
+    }
+
+    public async Task<List<DavResource>> ListChildObjectsAsResourcesAsync(DavResource parent, CancellationToken ct)
     {
         if (parent is null || parent.Current is null)
         {
@@ -191,9 +245,58 @@ public class ResourceRepository
     }
 
 
+    public async Task<List<DavResource>> ListBlobsAsResourcesAsync(DavResource parent, CancellationToken ct)
+    {
+        if (parent is null || parent.Current is null)
+        {
+            return [];
+        }
+        var result = new List<DavResource>();
+        var children = await Db.CollectionObject
+            .Include(c => c.BlobItem)
+            .Where(c => c.CollectionId == parent.Current.Id)
+            .OrderBy(c => c.Uri)
+            .ToListAsync(ct);
+        foreach (var child in children)
+        {
+            var uri = new CaldavUri(child.Uri);
+            var resource = new DavResource(uri)
+            {
+                CurrentUser = parent.CurrentUser,
+                Owner = parent.Owner,
+                DavName = child.Uri,
+                PathBase = PathBase,
+                DavEtag = child.Etag,
+                Parent = parent.Current,
+                Object = child,
+                ParentResourceType = CollectionType(parent.Current),
+                ResourceType = CollectionType(parent.Current) switch
+                {
+                    DavResourceType.Calendar => DavResourceType.CalendarItem,
+                    DavResourceType.Addressbook => DavResourceType.AddressbookItem,
+                    DavResourceType.Container => DavResourceType.BlobItem,
+                    _ => throw new Exception(),
+                },
+            };
+            result.Add(resource);
+
+        }
+        return result;
+    }
+
     public async Task<DavResource> GetResourceAsync(CaldavUri uri, HttpContext context, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        if (context.User.Identity?.IsAuthenticated == false)
+        {
+            var anonymous = new Principal { Username = "anonymous" };
+            return new DavResource(uri)
+            {
+                Owner = anonymous,
+                CurrentUser = anonymous,
+                PathBase = PathBase,
+            };
+        }
         var user = await PrincipalRepository.GetCurrentUserPrincipalAsync(context.User.Identity, ct) ?? throw new InvalidOperationException("User is required");
         var owner = uri.Username is not null && string.Equals(user.Username, uri.Username, StringComparison.Ordinal) ? user : null;
         owner = uri.Username is not null && owner is null ? await PrincipalRepository.GetPrincipalAsync(
@@ -210,11 +313,16 @@ public class ResourceRepository
             PathBase = PathBase,
         };
 
-        if (owner is null)
+        if (owner is null || uri.IsInvalid)
         {
-            if (!string.IsNullOrEmpty(uri.Username))
+            if (uri.IsInvalid)
             {
-                Log.Error("Resource detection/Invalid/malformed URI {uri}", context.Request.GetEncodedUrl());
+                Log.Error("Malformed URI {uri}", context.Request.GetEncodedUrl());
+                resource.ParentResourceType = resource.ResourceType = DavResourceType.Unknown;
+            }
+            else if (!string.IsNullOrEmpty(uri.Username))
+            {
+                Log.Error("Incomplete URI {uri}", context.Request.GetEncodedUrl());
                 resource.ParentResourceType = resource.ResourceType = DavResourceType.Unknown;
             }
             else
@@ -226,7 +334,7 @@ public class ResourceRepository
             return resource;
         }
 
-        if (uri.IsPrincipal())
+        if (uri.IsPrincipal)
         {
             resource.ResourceType = DavResourceType.Principal;
             resource.ParentResourceType = DavResourceType.Root;
@@ -245,11 +353,12 @@ public class ResourceRepository
                 resource.DavEtag = resource.Current.Etag;
                 resource.Privileges = await GetPrivilegesAsync(resource, ct);
                 resource.Privileges |= resource.Current.GlobalPermitSelf;
-                resource.ParentResourceType = resource.Uri?.Collection?.Count == 1 ? DavResourceType.Principal : DavResourceType.Container;
+                resource.ParentResourceType = uri.IsSubResource ? DavResourceType.Container : DavResourceType.Principal;
             }
             else
             {
-                if (uri.Collection?.Count > 1)
+                // the collection does not exists, we assume that the URI points to the new sub collection
+                if (uri.IsSubResource)
                 {
                     var parent = await Db.Collection.Include(c => c.Owner).Include(c => c.PrincipalType).FirstOrDefaultAsync(z => z.Uri == uri.ParentCollectionPath, ct);
                     if (parent is null)
@@ -336,6 +445,7 @@ public class ResourceRepository
                                         resource.ResourceType = DavResourceType.WebSubscriptionItem;
                                         resource.Object = new CollectionObject
                                         {
+                                            Segment = uri.TrailingSegment ?? "",
                                             Uri = uri.Path ?? "/",
                                             Uid = uri.ItemName ?? "",
                                             Collection = resource.Parent,
@@ -346,15 +456,21 @@ public class ResourceRepository
 
                                 default:
                                     {
-                                        resource.Current = await Db.Collection.FirstOrDefaultAsync(z => z.Uri == uri.Path, ct);
+                                        var uriPath = UriUtils.ToFolderPath(uri.Path);
+                                        resource.Current = await Db.Collection.FirstOrDefaultAsync(z => z.Uri == uriPath, ct);
                                         if (resource.Current is not null)
                                         {
                                             resource.Exists = true;
+                                            resource.ResourceType = DavResourceType.Container;
                                         }
-                                        // Testsuite ???
-                                        Log.Error("TODO: Add DavResourceType ");
-                                        throw new NotSupportedException($"Resource type undefined in parent {resource.Parent.CollectionSubType:o}");
+                                        else
+                                        {
+                                            resource.Object = await Db.CollectionObject.Include(c => c.BlobItem).FirstOrDefaultAsync(z => z.Uri == uri.Path && z.Deleted == null, ct);
+                                            resource.Exists = resource.Object is not null;
+                                            resource.ResourceType = resource.Exists ? DavResourceType.BlobItem : DavResourceType.Unknown;
+                                        }
                                     }
+                                    break;
                             }
                         }
                         break;
@@ -389,7 +505,6 @@ public class ResourceRepository
         var uri = new CaldavUri(context.Request.Path, PathBase);
         return await GetResourceAsync(uri, context, ct);
     }
-
 
 
     public async Task<DavResource?> GetByUidAsync(HttpContext context, string? uid, int ownerId, CollectionType collectionType, CollectionSubType collectionSubType, CancellationToken ct)

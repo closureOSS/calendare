@@ -8,4 +8,5 @@ public class CalendareOptions
     public bool IsTestMode { get; set; }
     public List<ClientFeatureSet> Features { get; set; } = [];
     public List<TimezoneAlias> TimezoneAliases { get; set; } = [];
+    public string? ApplicationKeySecret { get; set; }
 }

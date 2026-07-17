@@ -33,7 +33,7 @@ public partial class PostHandler : HandlerBase, IMethodHandler
         }
         if (contentType is not null && !string.Equals(contentType.MediaType, MimeContentTypes.VCalendar, StringComparison.Ordinal))
         {
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "supported-calendar-data", $"Incorrect content type for calendar: {contentType.MediaType}");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.SupportedCalendarData, $"Incorrect content type for calendar: {contentType.MediaType}");
             return;
         }
         string? bodyContent;
@@ -44,7 +44,7 @@ public partial class PostHandler : HandlerBase, IMethodHandler
         catch (InvalidDataException ex)
         {
             Log.Error(ex, "Failed to decode");
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, XmlNs.Dav + "content-encoding", "Unable to decode 'xxx' content encoding.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, Precondition.ContentEncoding, "Unable to decode 'xxx' content encoding.");
             return;
         }
         Recorder.SetRequestBody(bodyContent);
@@ -55,7 +55,7 @@ public partial class PostHandler : HandlerBase, IMethodHandler
             switch (parseResult.ErrorCategory)
             {
                 case VSyntaxReader.Properties.DeserializeErrorCategory.Syntax:
-                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Caldav + "valid-calendar-data", parseResult.ErrorMessage);
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, Precondition.ValidCalendarData, parseResult.ErrorMessage);
                     break;
 
                 case VSyntaxReader.Properties.DeserializeErrorCategory.NoContent:
@@ -70,13 +70,13 @@ public partial class PostHandler : HandlerBase, IMethodHandler
         if (!vCalendarUnique.IsValid || string.IsNullOrEmpty(vCalendarUnique.Uid))
         {
             Log.Error("Calendar contains multiple unrelated components");
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Caldav + "valid-calendar-object-resource", "Calendar contains multiple unrelated components");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.ValidCalendarObjectResource, "Calendar contains multiple unrelated components");
             return;
         }
         var calendarItemContext = await ResourceRepository.GetResourceAsync(new($"/{resource.DavName}/{vCalendarUnique.Uid}.ics"), httpContext, httpContext.RequestAborted);
         if (calendarItemContext.Exists)
         {
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "duplicate", $"Uid exists \"{vCalendarUnique.Uid}\" already");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.Duplicate, $"Uid exists \"{vCalendarUnique.Uid}\" already");
             return;
         }
         var collectionObject = vCalendarUnique.CreateCollectionObject(calendarItemContext, bodyContent);

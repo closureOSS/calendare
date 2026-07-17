@@ -16,10 +16,7 @@ public static partial class CalendarMessageMapper
 
     public static MailboxItem ToView(this SchedulingMessage source)
     {
-        if (source is null)
-        {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
         var target = Map(source);
         return target;
     }

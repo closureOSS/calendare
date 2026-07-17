@@ -74,6 +74,26 @@ public partial class GetHandler : HandlerBase, IMethodHandler
                 await GetAddressbook(httpContext, resource, isHeadRequest);
             }
         }
+        else if (resource.ResourceType == DavResourceType.Container || resource.ResourceType == DavResourceType.BlobItem)
+        {
+            if (!resource.Privileges.HasAnyOf(PrivilegeMask.Read))
+            {
+                await WriteErrorNeedPrivilegeAsync(httpContext, resource.DavName, PrivilegeMask.Read);
+                return;
+            }
+            if (resource.ResourceType == DavResourceType.BlobItem)
+            {
+                await GetBlobItem(httpContext, resource, isHeadRequest);
+            }
+            else
+            {
+                await GetCollectionIndex(httpContext, resource, isHeadRequest);
+            }
+        }
+        else if (resource.ParentResourceType == DavResourceType.Container && resource.ResourceType == DavResourceType.Unknown)
+        {
+            await WriteStatusAsync(httpContext, HttpStatusCode.NotFound);
+        }
         else
         {
             Log.Error("Resource type {resourceType} doesn't support GET requests or unknown", resource.ResourceType);

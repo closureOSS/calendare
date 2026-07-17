@@ -8,5 +8,6 @@ public static class AuthenticationTypes
 {
     public const string JwtBearer = "AuthenticationTypes.Federation";
     public const string Basic = "Basic";
+    public const string ApplicationKey = "AppKey";
     // add further types if needed and supported
 }

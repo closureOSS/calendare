@@ -27,6 +27,9 @@ public static class XmlNs
     public static readonly XNamespace IceWarp = "http://icewarp.com/ns/";
     public const string IceWarpPrefix = "IC";
 
+    public static readonly XNamespace MSWindows = "urn:schemas-microsoft-com:";
+    public const string MSWindowsPrefix = "MS";
+
 
     /// <summary>
     /// Main DAV namespace (<c>DAV:</c>).

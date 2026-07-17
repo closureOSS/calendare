@@ -81,25 +81,6 @@ public static partial class AdministrationApi
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 
-        api.MapDelete("/site/trxjournal", async Task<Results<Ok, UnauthorizedHttpResult>> (SiteRepository siteRepository, UserRepository userRepository, HttpContext context) =>
-        {
-            var currentUserPrincipal = await TryGetAdministrator(userRepository, context.User.Identity, PrivilegeMask.AdminSysOps, context.RequestAborted);
-            if (currentUserPrincipal is null)
-            {
-                return TypedResults.Unauthorized();
-            }
-            // TODO: add cut off time to prune transaction log
-            var cnt = await siteRepository.DeleteTrxJournal(context.RequestAborted);
-            return TypedResults.Ok();
-        })
-        .WithName("DeleteTrxJournal")
-        .RequireAuthorization()
-        .WithSummary("Deletes transaction journal")
-        .WithTags(["Operation"])
-        .WithDescription("Deletes transaction journal")
-        .ProducesProblem(StatusCodes.Status401Unauthorized)
-        ;
-
         api.MapGet("/sync", async Task<Results<Ok<SyncTokenResponse>, NotFound, UnauthorizedHttpResult, BadRequest<ProblemDetails>>> (
             [FromQuery(Name = "collection"), Required] string collectionUri, DavEnvironmentRepository env, ItemRepository itemRepository, HttpContext context) =>
         {
@@ -120,6 +101,43 @@ public static partial class AdministrationApi
         .WithDescription("Gets the latest sync token for a collection; can only be used in TEST mode")
         .WithTags(["Testing"])
         .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
+        ;
+
+        api.MapDelete("/site/trxjournal", async Task<Results<Ok, UnauthorizedHttpResult>> (SiteRepository siteRepository, UserRepository userRepository, HttpContext context) =>
+        {
+            var currentUserPrincipal = await TryGetAdministrator(userRepository, context.User.Identity, PrivilegeMask.AdminSysOps, context.RequestAborted);
+            if (currentUserPrincipal is null)
+            {
+                return TypedResults.Unauthorized();
+            }
+            // TODO: add cut off time to prune transaction log
+            var cnt = await siteRepository.DeleteTrxJournalAsync(context.RequestAborted);
+            return TypedResults.Ok();
+        })
+        .WithName("DeleteTrxJournal")
+        .RequireAuthorization()
+        .WithSummary("Deletes transaction journal")
+        .WithTags(["Operation"])
+        .WithDescription("Deletes transaction journal")
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
+        ;
+
+        api.MapDelete("/site/garbagecollection", async Task<Results<Ok, NoContent, UnauthorizedHttpResult>> (SiteRepository siteRepository, UserRepository userRepository, HttpContext context) =>
+        {
+            var currentUserPrincipal = await TryGetAdministrator(userRepository, context.User.Identity, PrivilegeMask.AdminSysOps, context.RequestAborted);
+            if (currentUserPrincipal is null)
+            {
+                return TypedResults.Unauthorized();
+            }
+            var cnt = await siteRepository.GarbageCollectionAsync(context.RequestAborted);
+            return cnt != 0 ? TypedResults.Ok() : TypedResults.NoContent();
+        })
+        .WithName("GarbageCollection")
+        .RequireAuthorization()
+        .WithSummary("Trigger garbage collection")
+        .WithTags(["Operation"])
+        .WithDescription("GC cleans up deleted webdav blobs (files)")
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         ;
 

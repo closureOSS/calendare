@@ -30,9 +30,21 @@ public static partial class PropertiesDefinition
             TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar],
             GetValue = (prop, qry, resource, ctx) =>
             {
-                if (!string.IsNullOrEmpty(resource.Current?.DisplayName))
+                var env = ctx.RequestServices.GetRequiredService<DavEnvironmentRepository>();
+                if (env.HasFeatures(CalendareFeatures.LegacyWebDAV, ctx))
+                {
+                    prop.Value = resource.Uri.TrailingSegment ?? "";
+                }
+                else if (!string.IsNullOrEmpty(resource.Current?.DisplayName))
                 {
                     prop.Value = resource.Current.DisplayName;
+                }
+                else
+                {
+                    if (resource.ResourceType == DavResourceType.Container)
+                    {
+                        prop.Value = resource.Uri.TrailingSegment ?? "";
+                    }
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
@@ -51,7 +63,7 @@ public static partial class PropertiesDefinition
                 {
                     return false;
                 }
-                return (resource.Current.DisplayName ?? "").Contains(searchTerm ?? "");
+                return (resource.Current.DisplayName ?? "").Contains(searchTerm ?? "", StringComparison.InvariantCultureIgnoreCase);
             },
         });
         repo.Register(new DavProperty
@@ -227,7 +239,7 @@ public static partial class PropertiesDefinition
             // https://datatracker.ietf.org/doc/html/rfc4918#section-15.1
             Name = XmlNs.Dav + "creationdate",
             TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar],
-            IsExpensive = true,
+            // IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
                 if (resource.Current is not null)
@@ -264,14 +276,78 @@ public static partial class PropertiesDefinition
         });
         repo.Register(new DavProperty
         {
+            // https://datatracker.ietf.org/doc/html/rfc4331#section-3
+            Name = XmlNs.Dav + "quota-available-bytes",
+            IsExpensive = true,
+            TypeRestrictions = [DavResourceType.Root, DavResourceType.Principal, DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar],
+            GetValue = async (prop, qry, resource, ctx) =>
+            {
+                long QuotaPerUser = 2147483648;   // TODO: Make configuration item
+                long usedQuota = 0;
+                var collectionRepository = ctx.RequestServices.GetRequiredService<MoveCopyRepository>();
+                switch (resource.ResourceType)
+                {
+                    case DavResourceType.Root:
+                    case DavResourceType.Principal:
+                        usedQuota = await collectionRepository.ComputeQuotaUsedAsync(resource.Owner.UserId, ctx.RequestAborted);
+                        break;
+                    case DavResourceType.Container:
+                        if (resource.Current?.CollectionSubType == CollectionSubType.Default)
+                        {
+                            usedQuota = await collectionRepository.ComputeQuotaUsedAsync(resource.Owner.UserId, ctx.RequestAborted);
+                        }
+                        break;
+
+                    default:
+                        // We don't set a quota for calendar or addressbooks
+                        break;
+                }
+                prop.Value = $"{Math.Max(QuotaPerUser - usedQuota, 0)}";
+                return PropertyUpdateResult.Success;
+            },
+        }, XmlNs.Dav + "quota");
+        repo.Register(new DavProperty
+        {
+            // https://datatracker.ietf.org/doc/html/rfc4331#section-4
+            Name = XmlNs.Dav + "quota-used-bytes",
+            IsExpensive = true,
+            TypeRestrictions = [DavResourceType.Root, DavResourceType.Principal, DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar],
+            GetValue = async (prop, qry, resource, ctx) =>
+            {
+                long usedQuota = 0;
+                var collectionRepository = ctx.RequestServices.GetRequiredService<MoveCopyRepository>();
+                switch (resource.ResourceType)
+                {
+                    case DavResourceType.Root:
+                    case DavResourceType.Principal:
+                        usedQuota = await collectionRepository.ComputeQuotaUsedAsync(resource.Owner.UserId, ctx.RequestAborted);
+                        break;
+                    case DavResourceType.Container:
+                        if (resource.Current?.CollectionSubType == CollectionSubType.Default)
+                        {
+                            usedQuota = await collectionRepository.ComputeQuotaUsedAsync(resource.Owner.UserId, ctx.RequestAborted);
+                        }
+                        break;
+
+                    default:
+                        // We don't set a quota for calendar or addressbooks
+                        break;
+                }
+                prop.Value = $"{usedQuota}";
+                return PropertyUpdateResult.Success;
+            },
+        }, XmlNs.Dav + "quotaused");
+        repo.Register(new DavProperty
+        {
             // https://datatracker.ietf.org/doc/html/rfc3744#section-5.1
             Name = XmlNs.Dav + "owner",
+            IsExpensive = true,
             TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar],
             GetValue = (prop, qry, resource, ctx) =>
             {
                 if (resource.Current is not null)
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}/{resource.Current.Owner.Username}/"));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.Current.Owner.Username)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
@@ -290,7 +366,7 @@ public static partial class PropertiesDefinition
                     case CollectionType.Calendar:
                         if (resource.Current.CollectionSubType == CollectionSubType.Default)
                         {
-                            prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Current.Uri}"));
+                            prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.Current.Uri)));
                         }
                         break;
 
@@ -376,7 +452,7 @@ public static partial class PropertiesDefinition
         {
             // TODO: what is etag vs non-standard ctag ???
             Name = XmlNs.CalenderServer + "getctag",
-            TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar],
+            TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Calendar],
             GetValue = (prop, qry, resource, ctx) =>
             {
                 if (!string.IsNullOrEmpty(resource.Current?.Etag))
@@ -462,7 +538,7 @@ public static partial class PropertiesDefinition
         {
             // https://datatracker.ietf.org/doc/html/rfc6638#section-9.1
             Name = XmlNs.Caldav + "schedule-calendar-transp",
-            TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar],
+            TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Calendar],
             GetValue = (prop, qry, resource, ctx) =>
             {
                 if (resource.Current is null)
@@ -746,7 +822,7 @@ public static partial class PropertiesDefinition
             },
             Update = async (prop, resource, collection, ctx) =>
             {
-                if (resource.Current is null)
+                if (resource.Current is null || collection is null)
                 {
                     return PropertyUpdateResult.BadRequest;
                 }
@@ -807,7 +883,7 @@ public static partial class PropertiesDefinition
             },
             Update = async (prop, resource, collection, ctx) =>
             {
-                if (resource.Current is null)
+                if (resource.Current is null || collection is null)
                 {
                     return PropertyUpdateResult.BadRequest;
                 }
@@ -853,7 +929,7 @@ public static partial class PropertiesDefinition
             },
             Update = async (prop, resource, collection, ctx) =>
             {
-                if (resource.Current is null)
+                if (resource.Current is null || collection is null)
                 {
                     return PropertyUpdateResult.BadRequest;
                 }
@@ -898,7 +974,7 @@ public static partial class PropertiesDefinition
             },
             Update = async (prop, resource, collection, ctx) =>
             {
-                if (resource.Current is null)
+                if (resource.Current is null || collection is null)
                 {
                     return PropertyUpdateResult.BadRequest;
                 }
@@ -1024,7 +1100,7 @@ public static partial class PropertiesDefinition
         //
         // Ignored properties
         //
-        repo.Register(new DavProperty { Name = XmlNs.Caldav + "supported-calendar-data", Update = IgnoreAmend, TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar], IsExpensive = true, });  // Ignored, since we will support iCalendar 2.0 https://datatracker.ietf.org/doc/html/rfc4791#section-5.2.3
+        repo.Register(new DavProperty { Name = Precondition.SupportedCalendarData, Update = IgnoreAmend, TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar], IsExpensive = true, });  // Ignored, since we will support iCalendar 2.0 https://datatracker.ietf.org/doc/html/rfc4791#section-5.2.3
         // repo.Register(new DavProperty { Name = XmlNs.Caldav + "calendar-data", Update = IgnoreAmend, IsExpensive = true, });    // Ignored, since we will support iCalendar 2.0 https://datatracker.ietf.org/doc/html/rfc4791#section-9.6
         repo.Register(new DavProperty { Name = XmlNs.Caldav + "max-resource-size", Update = IgnoreAmend, TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar], IsExpensive = true, });// Ignored, since we will support arbitrary size
         repo.Register(new DavProperty { Name = XmlNs.Caldav + "min-date-time", Update = IgnoreAmend, TypeRestrictions = [DavResourceType.Addressbook, DavResourceType.Container, DavResourceType.Calendar], IsExpensive = true, });    // Ignored, since we will support arbitrary time

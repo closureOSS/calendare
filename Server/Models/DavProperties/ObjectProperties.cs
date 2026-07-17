@@ -15,12 +15,13 @@ public static partial class PropertiesDefinition
         {
             // https://datatracker.ietf.org/doc/html/rfc3744#section-5.1
             Name = XmlNs.Dav + "owner",
-            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem],
+            IsExpensive = true,
+            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem, DavResourceType.BlobItem],
             GetValue = (prop, qry, resource, ctx) =>
             {
                 if (resource.Object is not null)
                 {
-                    prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}/{resource.Object.Owner?.Username ?? resource.Owner.Username}/"));
+                    prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedFolderUri(resource.PathBase, resource.Object.Owner?.Username ?? resource.Owner.Username)));
                 }
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
@@ -29,7 +30,7 @@ public static partial class PropertiesDefinition
         {
             // https://datatracker.ietf.org/doc/html/rfc3253#section-3.1.3
             Name = XmlNs.Dav + "supported-method-set",
-            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem],
+            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem, DavResourceType.BlobItem],
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
@@ -48,7 +49,7 @@ public static partial class PropertiesDefinition
         {
             // https://datatracker.ietf.org/doc/html/rfc4918#section-15.6
             Name = XmlNs.Dav + "getetag",
-            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem],
+            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem, DavResourceType.BlobItem],
             GetValue = (prop, qry, resource, ctx) =>
             {
                 if (!string.IsNullOrEmpty(resource.DavEtag)) prop.Value = $"\"{resource.DavEtag}\"";
@@ -101,7 +102,7 @@ public static partial class PropertiesDefinition
         {
             // https://datatracker.ietf.org/doc/html/rfc4918#section-15.9
             Name = XmlNs.Dav + "resourcetype",
-            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem],
+            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem, DavResourceType.BlobItem],
             GetValue = (prop, qry, resource, ctx) =>
             {
                 return Task.FromResult(PropertyUpdateResult.Success);
@@ -111,11 +112,11 @@ public static partial class PropertiesDefinition
         {
             // https://datatracker.ietf.org/doc/html/rfc3744#section-5.7
             Name = XmlNs.Dav + "inherited-acl-set",
-            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem],
+            TypeRestrictions = [DavResourceType.AddressbookItem, DavResourceType.CalendarItem, DavResourceType.BlobItem],
             IsExpensive = true,
             GetValue = (prop, qry, resource, ctx) =>
             {
-                prop.Add(new XElement(XmlNs.Dav + "href", $"{resource.PathBase}{resource.Parent?.Uri ?? resource.DavName}"));
+                prop.Add(new XElement(XmlNs.Dav + "href", UriUtils.ToEscapedUri(resource.PathBase, resource.Parent?.Uri ?? resource.DavName)));
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
         });

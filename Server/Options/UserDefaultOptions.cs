@@ -6,5 +6,3 @@ public class UserDefaultOptions
     public string? DateFormatType { get; set; }
     public string? TzId { get; set; }
 }
-
-

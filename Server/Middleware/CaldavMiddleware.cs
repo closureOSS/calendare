@@ -6,6 +6,7 @@ using Calendare.Server.Models;
 using Calendare.Server.Options;
 using Calendare.Server.Recorder;
 using Calendare.Server.Repository;
+using Calendare.Server.Utils;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,11 +42,11 @@ internal class CaldavMiddleware : IMiddleware
                     context.Response.Headers.CacheControl = "no-cache";
                     if (context.User.Identity?.IsAuthenticated == true)
                     {
-                        context.Response.Redirect($"{PathBase}/{context.User.Identity.Name}/", true);
+                        context.Response.Redirect($"{PathBase}/{context.User.Identity.Name}/", permanent: true);
                     }
                     else
                     {
-                        context.Response.Redirect($"{PathBase}/", true);
+                        context.Response.Redirect($"{PathBase}/", permanent: true);
                     }
                     break;
 
@@ -96,7 +97,7 @@ internal class CaldavMiddleware : IMiddleware
             }
             return;
         }
-        if (context.Request.Path.StartsWithSegments(PathBase, System.StringComparison.OrdinalIgnoreCase))
+        if (context.Request.Path.StartsWithSegments(PathBase, StringComparison.OrdinalIgnoreCase) || context.Request.Path == "/")
         {
             if (config.Handlers.TryGetValue(context.Request.Method, out var handlerType))
             {
@@ -117,6 +118,11 @@ internal class CaldavMiddleware : IMiddleware
                     var resource = await ResourceRepository.GetAsync(context, context.RequestAborted);
                     if (resource is not null)
                     {
+                        if (resource.ResourceType == DavResourceType.Container && resource.Exists == true && context.Request.Path.HasValue && !context.Request.Path.Value.EndsWith('/'))
+                        {
+                            context.Response.Redirect(UriUtils.ToEscapedFolderUri(resource.PathBase, resource.DavName), permanent: true);
+                            return;
+                        }
                         await handler.HandleRequestAsync(context, resource);
                         recorder.SetResponse(context.Response);
                     }
@@ -160,7 +166,7 @@ internal class CaldavMiddleware : IMiddleware
         {
             return false;
         }
-        if (context.Request.Path == "")
+        if (context.Request.Path == "/" && context.Request.Method.Equals("OPTIONS", StringComparison.Ordinal))
         {
             return false;
         }

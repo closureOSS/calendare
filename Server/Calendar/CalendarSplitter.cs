@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Calendare.Data.Models;
 using Calendare.Server.Middleware;
+using Calendare.Server.Utils;
 using Calendare.VSyntaxReader.Components;
 
 namespace Calendare.Server.Calendar;
@@ -31,11 +32,8 @@ public class CalendarSplitter
         var recurringComponents = vCalendar.Children.OfType<RecurringComponent>().GroupBy(rc => rc.Uid ?? Guid.NewGuid().ToString(), StringComparer.Ordinal);
         foreach (var occGroup in recurringComponents)
         {
-            var davname = $"{Uri.Path!}{occGroup.Key}";
-            if (!davname.EndsWith(".ics", StringComparison.OrdinalIgnoreCase))
-            {
-                davname += ".ics";
-            }
+            var filename = UriUtils.EncodeSlash(occGroup.Key.EndsWith(".ics", StringComparison.OrdinalIgnoreCase) ? occGroup.Key : $"{occGroup.Key}.ics");
+            var davname = $"{Uri.Path!}{filename}";
             var groupedCalendar = vCalendar.Builder.CreateCalendar();
             groupedCalendar.ProductIdentifier = vCalendar.ProductIdentifier;
             // TODO: Remove or make optional - copy VTIMEZONE to instance, but we don't use it internally at all
@@ -54,6 +52,7 @@ public class CalendarSplitter
                 CalendarItem = new(),
                 OwnerId = Owner.UserId,
                 ActualUserId = CurrentUser.UserId,
+                Segment = filename,
                 Uri = davname,
                 Uid = mainComponent.Uid ?? throw new ArgumentException("Uid is null", nameof(vCalendar)),
                 VObjectType = mainComponent.Name,

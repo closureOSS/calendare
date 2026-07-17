@@ -51,6 +51,7 @@ public static partial class PrincipalMapper
 {
     [MapperIgnoreSource(nameof(Collection.Parent))]
     [MapperIgnoreSource(nameof(Collection.ParentId))]
+    [MapperIgnoreSource(nameof(Collection.Segment))]
     [MapperIgnoreSource(nameof(Collection.CollectionType))]
     [MapperIgnoreSource(nameof(Collection.ParentContainerUri))]
     [MapperIgnoreSource(nameof(Collection.ScheduleTransparency))]

@@ -21,6 +21,7 @@ public static class RegisterDavPropertiesExtensions
         registry.ObjectProperties();
         registry.ObjectAddressbookProperties();
         registry.ObjectCalendarProperties();
+        registry.ObjectBlobProperties();
 
         // end of registration
         return applicationBuilder;

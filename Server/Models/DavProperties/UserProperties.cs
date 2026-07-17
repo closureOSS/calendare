@@ -80,11 +80,19 @@ public static partial class PropertiesDefinition
             },
             Update = (prop, resource, collection, ctx) =>
             {
+                if (collection is null)
+                {
+                    return Task.FromResult(PropertyUpdateResult.BadRequest);
+                }
                 collection.Description = prop.InnerXMLToString();
                 return Task.FromResult(PropertyUpdateResult.Success);
             },
             Remove = (prop, resource, collection, ctx) =>
             {
+                if (collection is null)
+                {
+                    return Task.FromResult(PropertyUpdateResult.BadRequest);
+                }
                 collection.Description = null;
                 return Task.FromResult(PropertyUpdateResult.Success);
             },

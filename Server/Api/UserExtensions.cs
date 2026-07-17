@@ -21,31 +21,37 @@ public static partial class UserExtensions
             usr.Email = null;
             usr.EmailOk = null;
         }
-        if (!string.IsNullOrEmpty(usr.Username))
+        return IsValidUsername(usr.Username);
+    }
+
+    public static bool IsValidUsername(string? username)
+    {
+        if (string.IsNullOrEmpty(username))
         {
-            var trimmed = usr.Username.Trim();
-            if (!trimmed.Equals(usr.Username, System.StringComparison.Ordinal))
+            return false;
+        }
+        var trimmed = username.Trim();
+        if (!trimmed.Equals(username, System.StringComparison.Ordinal))
+        {
+            return false;
+        }
+        if (username.Contains('@', System.StringComparison.Ordinal))
+        {
+            if (username.IsEmailAddress())
             {
-                return false;
+                return true;
             }
-            if (usr.Username.Contains('@', System.StringComparison.Ordinal))
+        }
+        else
+        {
+            if (UsernameRegex.IsMatch(username))
             {
-                if (usr.Username.IsEmailAddress())
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                if (UsernameRegex().IsMatch(usr.Username))
-                {
-                    return true;
-                }
+                return true;
             }
         }
         return false;
     }
 
     [GeneratedRegex(@"^[a-zA-Z]+[a-zA-Z0-9._\-\ ]*[a-zA-Z0-9]+$", RegexOptions.None, matchTimeoutMilliseconds: 100)]
-    private static partial Regex UsernameRegex();
+    private static partial Regex UsernameRegex { get; }
 }

@@ -61,7 +61,7 @@ public partial class ReportHandler : HandlerBase, IMethodHandler
 
         if (!Reports.TryGetValue(xmlRequestDoc.Root.Name, out var reportType))
         {
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "supported-report", $"\"{xmlRequestDoc.Root.Name}\" is not a supported report type.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, Precondition.SupportedReport, $"\"{xmlRequestDoc.Root.Name}\" is not a supported report type.");
             return;
         }
 

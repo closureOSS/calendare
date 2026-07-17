@@ -1,6 +1,8 @@
 ﻿// #define CLIENTCERT_AUTH
 
 using System;
+using System.Linq;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Calendare.Data;
@@ -11,6 +13,7 @@ using Calendare.Server.Migrations;
 using Calendare.Server.Options;
 using Calendare.Server.Recorder;
 using Calendare.Server.Repository;
+using Calendare.Server.Storage;
 using Calendare.Server.Webpush;
 using ClosureOSS.JwtBearer;
 using idunno.Authentication.Basic;
@@ -89,9 +92,13 @@ try
     // builder.Services.AddDatabaseDeveloperPageExceptionFilter();
     builder.Services.AddScoped<IMigrationRepository, MigrationRepository>();
     builder.Services.AddHostedService<MigrationWorker>();
+    builder.Services.AddSingleton<ApplicationKeyRepository>();
     builder.Services.AddHealthChecks();
     builder.Services.AddProblemDetails();
     builder.Services.AddEndpointsApiExplorer();
+    var assembly = Assembly.GetExecutingAssembly();
+    var repositoryUrl = assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a => string.Equals(a.Key, "RepositoryUrl", StringComparison.OrdinalIgnoreCase))?.Value;
+
     builder.Services.AddSwaggerGen(c =>
     {
         c.MapType<Instant>(() => new OpenApiSchema { Type = JsonSchemaType.String, Format = "date-time" });
@@ -102,7 +109,7 @@ try
             Description = "Administration API for the Calendare Server",
             Contact = new OpenApiContact
             {
-                Url = new Uri("https://github.com/closureOSS/calendare"),
+                Url = new Uri(repositoryUrl ?? "/"),
             },
             License = new OpenApiLicense
             {
@@ -139,12 +146,14 @@ try
 
     builder.Services.Configure<CalendareOptions>(builder.Configuration.GetSection("Calendare"));
     builder.Services.Configure<UserDefaultOptions>(builder.Configuration.GetSection("Calendare:UserDefaults"));
+    builder.Services.Configure<UserConstraintOptions>(builder.Configuration.GetSection("Calendare:UserConstraints"));
     builder.Services.Configure<BootstrapOptions>(builder.Configuration.GetSection("Calendare:Administrator"));
     builder.Services.Configure<VapidOptions>(builder.Configuration.GetSection("WebPush:Vapid"));
     builder.Services.AddCaldav();
 
     builder.Services.AddVSyntaxReaderExtended(TimezoneResolvers.Static);
     builder.Services.AddWebPush();
+    builder.Services.AddStorage(builder.Configuration.GetSection("WebDAV"));
 
     builder.Services.Configure<JwtBearerProviderOptions>(builder.Configuration.GetSection("JwtBearer"));
     builder.Services.ConfigureJwtBearerProvider();
@@ -164,11 +173,22 @@ try
             {
                 OnValidateCredentials = async context =>
                 {
+                    var username = context.Username;
+                    var password = context.Password;
+                    var authSchema = context.Scheme.Name;
                     var userRepo = context.HttpContext.RequestServices.GetRequiredService<UserRepository>();
-                    var claims = await userRepo.VerifyAsync(context.Username, context.Password, context.Scheme.Name, context.HttpContext.RequestAborted);
+                    var appKeyRepo = context.HttpContext.RequestServices.GetRequiredService<ApplicationKeyRepository>();
+                    var appKey = await appKeyRepo.DetectTokenAsync(context.Password, context.HttpContext.RequestAborted);
+                    if (appKey is not null)
+                    {
+                        username = appKey.Value.Username;
+                        password = appKey.Value.Password;
+                        authSchema = Calendare.Server.Constants.AuthenticationTypes.ApplicationKey;
+                    }
+                    var claims = await userRepo.VerifyAsync(username, password, authSchema, context.HttpContext.RequestAborted);
                     if (claims is not null)
                     {
-                        context.Principal = new ClaimsPrincipal(new ClaimsIdentity(claims, context.Scheme.Name));
+                        context.Principal = new ClaimsPrincipal(new ClaimsIdentity(claims, authSchema));
                         context.Success();
                     }
                     else

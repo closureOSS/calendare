@@ -6,6 +6,7 @@ using Calendare.Server.Constants;
 using Calendare.Server.Handlers;
 using Calendare.Server.Models;
 using Calendare.Server.Repository;
+using Calendare.Server.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,12 +26,12 @@ public class MultigetReport : ReportBase, IReport
         var itemRepository = httpContext.RequestServices.GetRequiredService<ItemRepository>();
 
         var hrefs = GetHrefs(xmlRequestDoc) ?? [];
-        var calendarItems = await itemRepository.ListByUriAsync(hrefs.Select(x => CleanUri(x.Value, PathBase)).ToArray(), ct);
+        var calendarItems = await itemRepository.ListByUriAsync([.. hrefs.Select(x => UriUtils.RemovePathBase(x.Value, PathBase))], ct);
         var propertyRegistry = httpContext.RequestServices.GetRequiredService<DavPropertyRepository>();
         var (xmlDoc, xmlMultistatus) = HandlerExtensions.CreateMultistatusDocument();
         foreach (var href in hrefs)
         {
-            var ci = calendarItems.FirstOrDefault(c => string.Equals(c.Uri, CleanUri(href.Value, PathBase), System.StringComparison.Ordinal));
+            var ci = calendarItems.FirstOrDefault(c => string.Equals(c.Uri, UriUtils.RemovePathBase(href.Value, PathBase), System.StringComparison.InvariantCulture));
             if (ci is not null)
             {
                 DavResource? resource = null;
@@ -61,17 +62,5 @@ public class MultigetReport : ReportBase, IReport
     private static List<XElement>? GetHrefs(XDocument xDocument)
     {
         return [.. xDocument.Descendants().Where(x => x.Name == XmlNs.Dav + "href")];
-    }
-
-    private static string CleanUri(string path, string? pathBase)
-    {
-        if (pathBase is not null)
-        {
-            if (path.StartsWith(pathBase, System.StringComparison.Ordinal))
-            {
-                return path[pathBase.Length..];
-            }
-        }
-        return path;
     }
 }

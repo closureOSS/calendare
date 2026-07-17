@@ -32,6 +32,8 @@ partial class MigrationRepository : IMigrationRepository
         await Migrate(nameof(Initial_Migration), Initial_Migration, ct);
         await Migrate(nameof(StaticDataUpdate01_Migration), StaticDataUpdate01_Migration, ct);
         await Migrate(nameof(AdminGroups02_Migration), AdminGroups02_Migration, ct);
+        await Migrate(nameof(Segment03_Migration), Segment03_Migration, ct);
+        await Migrate(nameof(OidcIssuer04_Migration), OidcIssuer04_Migration, ct);
         Log.Warning("Data migration done");
     }
 

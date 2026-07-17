@@ -14,22 +14,26 @@ public enum DavResourceType
     CalendarItem,
     AddressbookItem,
     WebSubscriptionItem,
+    BlobItem,
 }
 
 
 public static class DavResourceTypeExtensions
 {
-    public static DavResourceType ToResourceType(this Calendare.Data.Models.CollectionType collectionType)
+    extension(Data.Models.CollectionType collectionType)
     {
-        return collectionType switch
+        public DavResourceType ToResourceType()
         {
-            Calendare.Data.Models.CollectionType.Collection => DavResourceType.Container,
-            Calendare.Data.Models.CollectionType.Principal => DavResourceType.Principal,
-            Calendare.Data.Models.CollectionType.Calendar => DavResourceType.Calendar,
-            Calendare.Data.Models.CollectionType.Addressbook => DavResourceType.Addressbook,
-            // Calendare.Data.Models.CollectionType.SchedulingInbox => DavResourceType.Calendar,
-            // Calendare.Data.Models.CollectionType.SchedulingOutbox => DavResourceType.Calendar,
-            _ => throw new Exception(),
-        };
+            return collectionType switch
+            {
+                Data.Models.CollectionType.Collection => DavResourceType.Container,
+                Data.Models.CollectionType.Principal => DavResourceType.Principal,
+                Data.Models.CollectionType.Calendar => DavResourceType.Calendar,
+                Data.Models.CollectionType.Addressbook => DavResourceType.Addressbook,
+                // Data.Models.CollectionType.SchedulingInbox => DavResourceType.Calendar,
+                // Data.Models.CollectionType.SchedulingOutbox => DavResourceType.Calendar,
+                _ => throw new Exception(),
+            };
+        }
     }
 }

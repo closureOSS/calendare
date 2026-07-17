@@ -46,6 +46,8 @@ public static partial class UserRegisterRequestMapper
     [MapperIgnoreTarget(nameof(UsrCredential.Usr))]
     [MapperIgnoreTarget(nameof(UsrCredential.Created))]
     [MapperIgnoreTarget(nameof(UsrCredential.Modified))]
+    [MapperIgnoreTarget(nameof(UsrCredential.Issuer))]
+    [MapperIgnoreTarget(nameof(UsrCredential.Description))]
     [MapperIgnoreTarget(nameof(UsrCredential.Locked))]
     [MapperIgnoreTarget(nameof(UsrCredential.Validity))]
     [MapperIgnoreTarget(nameof(UsrCredential.LastUsed))]

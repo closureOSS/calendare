@@ -30,9 +30,9 @@ public partial class UserRepository
         PrincipalRepository = principalRepository;
     }
 
-    public async Task<Claim[]?> VerifyAsync(string username, string password, string issuer, CancellationToken ct)
+    public async Task<Claim[]?> VerifyAsync(string accesskey, string password, string issuer, CancellationToken ct)
     {
-        var verified = await GetVerifiedUser(username, password, ct);
+        var verified = await GetVerifiedUser(accesskey, password, ct);
         if (verified is null)
         {
             return null;
@@ -44,10 +44,6 @@ public partial class UserRepository
             new(ClaimTypes.PrimarySid, usr.Id.ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer, issuer),
             new(JwtRegisteredClaimNames.Sub, usr.Username, ClaimValueTypes.String, issuer),
         };
-        // if (!string.IsNullOrEmpty(usr.Fullname))
-        // {
-        //     claims.Add(new Claim(ClaimTypes.Surname, usr.Fullname, ClaimValueTypes.String, issuer));
-        // }
         if (!string.IsNullOrEmpty(usr.Email) && usr.EmailOk is not null)
         {
             claims.Add(new Claim(ClaimTypes.Email, usr.Email, ClaimValueTypes.String, issuer));
@@ -57,9 +53,9 @@ public partial class UserRepository
         return [.. claims];
     }
 
-    public async Task<(Usr User, UsrCredential Credential)?> GetVerifiedUser(string username, string password, CancellationToken ct)
+    public async Task<(Usr User, UsrCredential Credential)?> GetVerifiedUser(string accesskey, string password, CancellationToken ct)
     {
-        var usrAccess = await Db.UsrCredential.FirstOrDefaultAsync(u => u.Accesskey == username, cancellationToken: ct);
+        var usrAccess = await Db.UsrCredential.FirstOrDefaultAsync(u => u.Accesskey == accesskey, cancellationToken: ct);
         if (usrAccess is null)
         {
             return null;

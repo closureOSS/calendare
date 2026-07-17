@@ -3,16 +3,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using Calendare.Data;
 using Calendare.Data.Models;
+using Calendare.Server.Storage;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace Calendare.Server.Repository;
 
 public class SiteRepository
 {
     private readonly CalendareContext Db;
+    private readonly IDavStorage? Storage;
 
-    public SiteRepository(CalendareContext calendareContext)
+    public SiteRepository(CalendareContext calendareContext, IDavStorage? storage = null)
     {
+        Storage = storage;
         Db = calendareContext;
     }
 
@@ -41,16 +45,29 @@ public class SiteRepository
         return cnt;
     }
 
-    public async Task AddTrxJournal(TrxJournal trxJournal)
+    public async Task AddTrxJournalAsync(TrxJournal trxJournal)
     {
         Db.TrxJournal.Add(trxJournal);
         await Db.SaveChangesAsync(CancellationToken.None);
     }
 
-    public async Task<int> DeleteTrxJournal(CancellationToken ct)
+    public async Task<int> DeleteTrxJournalAsync(CancellationToken ct)
     {
         var cnt = await Db.TrxJournal.ExecuteDeleteAsync(ct);
         return cnt;
     }
 
+    public async Task<int> GarbageCollectionAsync(CancellationToken ct)
+    {
+        if (Storage is null)
+        {
+            Log.Information("WebDAV storage not configured; no garbage collection performed");
+            return 0;
+        }
+        // TODO: [LONGTERM] This doesn't work for a large installation, we need to break up the
+        //       request.
+        var locationKeys = await Db.ObjectBlob.Select(ob => ob.Location).ToHashSetAsync(ct);
+        await Storage.Cleanup(locationKeys, ct);
+        return 0;
+    }
 }

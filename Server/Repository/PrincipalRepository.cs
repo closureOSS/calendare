@@ -100,6 +100,7 @@ public class PrincipalRepository
         {
             AuthenticationTypes.Basic => CredentialTypes.Password,
             AuthenticationTypes.JwtBearer => CredentialTypes.JwtBearer,
+            AuthenticationTypes.ApplicationKey => CredentialTypes.AccessKey,
             _ => CredentialTypes.Password,
         };
         var usr = await Db.Usr
@@ -218,7 +219,7 @@ public class PrincipalRepository
         var principalCollection = usr.Collections.FirstOrDefault(x => x.IsMainPrincipal());
         var proxyRead = usr.Collections.FirstOrDefault(c => c.IsProxyRead());
         var proxyWrite = usr.Collections.FirstOrDefault(c => c.IsProxyWrite());
-        foreach (var collection in usr.Collections.OrderBy(c => c.Uri, System.StringComparer.OrdinalIgnoreCase))
+        foreach (var collection in usr.Collections.OrderBy(c => c.Uri, StringComparer.OrdinalIgnoreCase))
         {
             CollectionRepository.CalculatePermissions(collection, collection.Parent);
         }
@@ -272,17 +273,17 @@ public class PrincipalRepository
             return null;
         }
         collectionPrincipal.DisplayName = request.DisplayName;
-        if (!string.IsNullOrWhiteSpace(request.Email) && !request.Email.Equals(currentUser.Email, System.StringComparison.InvariantCultureIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(request.Email) && !request.Email.Equals(currentUser.Email, StringComparison.InvariantCultureIgnoreCase))
         {
             currentUser.Email = request.Email;
             // currentUser.EmailOk = SystemClock.Instance.GetCurrentInstant();
             currentUser.EmailOk = null;
         }
-        if (!string.IsNullOrWhiteSpace(request.DateFormatType))
+        if (request.DateFormatType is not null)
         {
             currentUser.DateFormatType = request.DateFormatType;
         }
-        if (!string.IsNullOrWhiteSpace(request.Locale))
+        if (request.Locale is not null)
         {
             currentUser.Locale = request.Locale;
         }
@@ -290,11 +291,11 @@ public class PrincipalRepository
         {
             collectionPrincipal.Timezone = request.Timezone;
         }
-        if (!string.IsNullOrWhiteSpace(request.Color))
+        if (request.Color is not null)
         {
             collectionPrincipal.Color = request.Color;
         }
-        if (!string.IsNullOrWhiteSpace(request.Description))
+        if (request.Description is not null)
         {
             collectionPrincipal.Description = request.Description;
         }

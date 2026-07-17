@@ -42,7 +42,7 @@ public partial class PostHandler : HandlerBase, IMethodHandler
         }
         if (contentType is not null && !string.Equals(contentType.MediaType, MimeContentTypes.VCalendar, StringComparison.Ordinal))
         {
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Carddav + "supported-calendar-data", $"Incorrect content type for calendar: {contentType.MediaType}");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.SupportedCalendarData, $"Incorrect content type for calendar: {contentType.MediaType}");
             return;
         }
         string? bodyContent;
@@ -53,7 +53,7 @@ public partial class PostHandler : HandlerBase, IMethodHandler
         catch (InvalidDataException ex)
         {
             Log.Error(ex, "Failed to decode");
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, XmlNs.Dav + "content-encoding", "Unable to decode 'xxx' content encoding.");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.UnsupportedMediaType, Precondition.ContentEncoding, "Unable to decode 'xxx' content encoding.");
             return;
         }
         Recorder.SetRequestBody(bodyContent);

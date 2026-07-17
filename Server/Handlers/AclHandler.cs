@@ -43,7 +43,7 @@ public class AclHandler : HandlerBase, IMethodHandler
         if (xmlRequest is null || xmlRequest?.Root is null)
         {
             SetEtagHeader(response, resource.Current?.Etag);
-            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, XmlNs.Dav + "invalid-xml");
+            await WriteErrorXmlAsync(httpContext, HttpStatusCode.BadRequest, Precondition.InvalidXml);
             return;
         }
         if (xmlRequest.Root.Name != XmlNs.Dav + "acl")

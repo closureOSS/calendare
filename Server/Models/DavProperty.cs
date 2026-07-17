@@ -39,7 +39,7 @@ public record class DavProperty
     public List<DavResourceType>? TypeRestrictions { get; set; }
 
     public Func<XElement, XElement?, DavResource, HttpContext, Task<PropertyUpdateResult>>? GetValue { get; set; }
-    public Func<XElement, DavResource, Collection, HttpContext, Task<PropertyUpdateResult>>? Update { get; set; }
-    public Func<XElement, DavResource, Collection, HttpContext, Task<PropertyUpdateResult>>? Remove { get; set; }
+    public Func<XElement, DavResource, Collection?, HttpContext, Task<PropertyUpdateResult>>? Update { get; set; }
+    public Func<XElement, DavResource, Collection?, HttpContext, Task<PropertyUpdateResult>>? Remove { get; set; }
     public Func<DavResource, string?, bool>? Matches { get; set; }
 }

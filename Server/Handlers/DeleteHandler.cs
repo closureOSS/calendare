@@ -7,9 +7,11 @@ using Calendare.Server.Constants;
 using Calendare.Server.Models;
 using Calendare.Server.Recorder;
 using Calendare.Server.Repository;
+using Calendare.Server.Storage;
 using Calendare.Server.Utils;
 using Calendare.VSyntaxReader.Components;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Calendare.Server.Handlers;
@@ -30,13 +32,18 @@ public class DeleteHandler : HandlerBase, IMethodHandler
     private readonly SchedulingRepository SchedulingRepository;
     private readonly PushSubscriptionRepository PushSubscriptionRepository;
     private readonly ICalendarBuilder CalendarBuilder;
+    private readonly MoveCopyRepository MoveRepository;
 
-    public DeleteHandler(DavEnvironmentRepository env, CollectionRepository collectionRepository, ItemRepository itemRepository, SchedulingRepository schedulingRepository, PushSubscriptionRepository pushSubscriptionRepository, ICalendarBuilder calendarBuilder, RecorderSession recorder) : base(env, recorder)
+    public DeleteHandler(DavEnvironmentRepository env, CollectionRepository collectionRepository,
+        ItemRepository itemRepository, MoveCopyRepository moveRepository,
+        SchedulingRepository schedulingRepository, PushSubscriptionRepository pushSubscriptionRepository,
+        ICalendarBuilder calendarBuilder, RecorderSession recorder) : base(env, recorder)
     {
         CollectionRepository = collectionRepository;
         ItemRepository = itemRepository;
         SchedulingRepository = schedulingRepository;
         PushSubscriptionRepository = pushSubscriptionRepository;
+        MoveRepository = moveRepository;
         CalendarBuilder = calendarBuilder;
     }
 
@@ -53,10 +60,11 @@ public class DeleteHandler : HandlerBase, IMethodHandler
         var ifmatchSchedule = request.GetIfScheduleTagMatch();
         switch (resource.ResourceType)
         {
+            case DavResourceType.BlobItem:
             case DavResourceType.AddressbookItem:
                 if (ifmatch is not null && !string.Equals(ifmatch, resource.Object?.Etag, StringComparison.Ordinal))
                 {
-                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "if-match", $"Existing resource Etag of \"{ifmatch}\" does not match \"{resource.Object?.Etag}\"");
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.IfMatch, $"Existing resource Etag of \"{ifmatch}\" does not match \"{resource.Object?.Etag}\"");
                     return;
                 }
                 await ItemRepository.DeleteAsync(resource.Object!.Uri, httpContext.RequestAborted);
@@ -70,12 +78,12 @@ public class DeleteHandler : HandlerBase, IMethodHandler
                 }
                 if (ifmatch is not null && !string.Equals(ifmatch, resource.Object?.Etag, StringComparison.Ordinal))
                 {
-                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "if-match", $"Existing resource Etag of \"{ifmatch}\" does not match \"{resource.Object?.Etag}\"");
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.IfMatch, $"Existing resource Etag of \"{ifmatch}\" does not match \"{resource.Object?.Etag}\"");
                     return;
                 }
                 if (ifmatchSchedule is not null && !string.Equals(ifmatchSchedule, resource.Object?.ScheduleTag, StringComparison.Ordinal))
                 {
-                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Dav + "if-match", $"Existing resource schedule tag of \"{ifmatchSchedule}\" does not match \"{resource.Object?.ScheduleTag}\"");
+                    await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.IfMatch, $"Existing resource schedule tag of \"{ifmatchSchedule}\" does not match \"{resource.Object?.ScheduleTag}\"");
                     return;
                 }
 
@@ -85,7 +93,7 @@ public class DeleteHandler : HandlerBase, IMethodHandler
                 }
                 else
                 {
-                    var parseResult = CalendarBuilder.Parser.TryParse(resource.Object!.RawData, out var vCalendar, $"{httpContext.Request.GetFullPath()}");
+                    var parseResult = CalendarBuilder.Parser.TryParse(resource.Object!.RawData, out var vCalendar, $"{httpContext.Request.GetFullPath(PathBase)}");
                     if (!parseResult || vCalendar is null)
                     {
                         // TODO: Just delete and ignore error?
@@ -93,7 +101,7 @@ public class DeleteHandler : HandlerBase, IMethodHandler
                         switch (parseResult.ErrorCategory)
                         {
                             case VSyntaxReader.Properties.DeserializeErrorCategory.Syntax:
-                                await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, XmlNs.Caldav + "valid-calendar-data", parseResult.ErrorMessage);
+                                await WriteErrorXmlAsync(httpContext, HttpStatusCode.Conflict, Precondition.ValidCalendarData, parseResult.ErrorMessage);
                                 break;
 
                             case VSyntaxReader.Properties.DeserializeErrorCategory.NoContent:
@@ -108,7 +116,7 @@ public class DeleteHandler : HandlerBase, IMethodHandler
                     {
                         // TODO: Just delete and ignore error?
                         Log.Error("Calendar contains multiple unrelated components");
-                        await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Caldav + "valid-calendar-object-resource", "Calendar contains multiple unrelated components");
+                        await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.ValidCalendarObjectResource, "Calendar contains multiple unrelated components");
                         return;
                     }
                     var schedulingRequest = await SchedulingRepository.Schedule(httpContext, resource, DbOperationCode.Delete, resource.Object, vCalendarUnique, beforeCalendar: null);
@@ -117,7 +125,6 @@ public class DeleteHandler : HandlerBase, IMethodHandler
                 await WriteStatusAsync(httpContext, HttpStatusCode.NoContent);
                 return;
 
-            case DavResourceType.Container:
             case DavResourceType.Addressbook:
             case DavResourceType.Calendar:
                 if (resource.Current is null)
@@ -130,11 +137,38 @@ public class DeleteHandler : HandlerBase, IMethodHandler
                 await WriteStatusAsync(httpContext, HttpStatusCode.NoContent);
                 return;
 
+            case DavResourceType.Container:
+                if (resource.Current is null)
+                {
+                    await WriteStatusAsync(httpContext, HttpStatusCode.NotFound);
+                    // TODO: Check if this is trigged, or is it dead code?
+                    throw new NotSupportedException($"Collection at {resource.Uri.Path} not set?");
+                }
+                var storage = httpContext.RequestServices.GetService<IDavStorage>();
+                if (storage is not null)
+                {
+                    await MoveRepository.TrackBlobDeletionAsync(resource.Current, storage, httpContext.RequestAborted);
+                }
+                await CollectionRepository.DeleteAsync(resource.Current.Id, httpContext.RequestAborted);
+                await WriteStatusAsync(httpContext, HttpStatusCode.NoContent);
+                if (storage is not null)
+                {
+                    try
+                    {
+                        await storage.CommitImmediately(httpContext.RequestAborted);
+                    }
+                    catch
+                    {
+                        Log.Error("Storage cleanup failed");
+                    }
+                }
+                return;
+
             case DavResourceType.WebSubscriptionItem:
                 {
                     if (resource.Object is null || string.IsNullOrEmpty(resource.Object.Uid))
                     {
-                        await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, XmlNs.Bitfire + "subscription-id", "Subscription Id mandatory");
+                        await WriteErrorXmlAsync(httpContext, HttpStatusCode.PreconditionFailed, Precondition.SubscriptionId, "Subscription Id mandatory");
                         return;
                     }
                     var subscription = await PushSubscriptionRepository.Delete(resource.CurrentUser.UserId, resource.Object.Uid, httpContext.RequestAborted);

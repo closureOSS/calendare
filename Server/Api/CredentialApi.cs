@@ -59,6 +59,30 @@ public static partial class AdministrationApi
         .ProducesProblem(StatusCodes.Status403Forbidden)
         ;
 
+        api.MapGet("/user/{username}/{credentialSubject}", async Task<Results<Ok<CredentialResponse>, NotFound, ForbidHttpResult>> (
+            string username, string credentialSubject, [FromQuery()] string? credentialType,
+            UserRepository userRepository, CredentialRepository credentialRepository, HttpContext context) =>
+        {
+            var (principal, _) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, username, PrivilegeMask.ReadAcl, context.RequestAborted);
+            if (principal is null)
+            {
+                return TypedResults.Forbid();
+            }
+            var (credential, multiple) = await credentialRepository.GetCredential(new(principal, credentialSubject, credentialType), context.RequestAborted);
+            if (credential is null)
+            {
+                return TypedResults.NotFound();
+            }
+            return TypedResults.Ok(credential.ToView());
+        })
+        .WithName("GetCredentialOfUser")
+        .RequireAuthorization()
+        .WithSummary("Get credential of user")
+        .WithDescription("Returns credential")
+        .ProducesProblem(StatusCodes.Status403Forbidden)
+        .ProducesProblem(StatusCodes.Status404NotFound)
+        ;
+
         api.MapGet("/types", (StaticDataRepository staticDataRepository, HttpContext context) =>
         {
             return TypedResults.Ok(staticDataRepository.UserAccessTypeList.Values);
@@ -80,8 +104,8 @@ public static partial class AdministrationApi
         .WithDescription("Returns random secret (as string)")
         ;
 
-        api.MapPatch("/user/{username}/{credentialId}/lock", async Task<Results<Ok<CredentialResponse>, ForbidHttpResult, BadRequest>> (
-            string username, int credentialId,
+        api.MapPatch("/user/{username}/{credentialSubject}/lock", async Task<Results<Ok<CredentialResponse>, ForbidHttpResult, BadRequest>> (
+            string username, string credentialSubject, [FromQuery()] string? credentialType,
             UserRepository userRepository, CredentialRepository credentialRepository, HttpContext context) =>
         {
             var (principal, _) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, username, PrivilegeMask.WriteAcl, context.RequestAborted);
@@ -89,27 +113,8 @@ public static partial class AdministrationApi
             {
                 return TypedResults.Forbid();
             }
-            var credential = await credentialRepository.UpdateLock(principal, credentialId, isLocked: false, context.RequestAborted);
-            return credential is not null ? TypedResults.Ok(credential.ToView()) : TypedResults.BadRequest();
-        })
-        .WithName("UnlockCredential")
-        .RequireAuthorization()
-        .WithSummary("Unlock credential")
-        .WithDescription("Returns credential entry")
-        .ProducesProblem(StatusCodes.Status403Forbidden)
-        .ProducesProblem(StatusCodes.Status400BadRequest)
-        ;
-
-        api.MapDelete("/user/{username}/{credentialId}/lock", async Task<Results<Ok<CredentialResponse>, ForbidHttpResult, BadRequest>> (
-            string username, int credentialId,
-            UserRepository userRepository, CredentialRepository credentialRepository, HttpContext context) =>
-        {
-            var (principal, _) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, username, PrivilegeMask.WriteAcl, context.RequestAborted);
-            if (principal is null)
-            {
-                return TypedResults.Forbid();
-            }
-            var credential = await credentialRepository.UpdateLock(principal, credentialId, isLocked: true, context.RequestAborted);
+            var credentialRef = new CredentialRef(principal, credentialSubject, credentialType);
+            var credential = await credentialRepository.UpdateLock(credentialRef, doLock: true, context.RequestAborted);
             return credential is not null ? TypedResults.Ok(credential.ToView()) : TypedResults.BadRequest();
         })
         .WithName("LockCredential")
@@ -120,35 +125,8 @@ public static partial class AdministrationApi
         .ProducesProblem(StatusCodes.Status400BadRequest)
         ;
 
-        api.MapPatch("/user/{username}/{credentialId}/reset", async Task<Results<Ok<CredentialResponse>, ForbidHttpResult, UnprocessableEntity<ProblemDetails>, BadRequest>> (
-            string username, int credentialId, [FromBody] UserCredentialRequest request,
-            UserManagementRepository userManagementRepository, UserRepository userRepository,
-            CredentialRepository credentialRepository, HttpContext context) =>
-        {
-            var (principal, _) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, username, PrivilegeMask.WriteAcl, context.RequestAborted);
-            if (principal is null)
-            {
-                return TypedResults.Forbid();
-            }
-            if (string.IsNullOrWhiteSpace(request.Password) || string.IsNullOrWhiteSpace(request.Username))
-            {
-                return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Missing username or password" });
-            }
-            var password = BetterPasswordHasher.HashPassword(request.Password);
-            var credential = await credentialRepository.Reset(principal, credentialId, request.Username, password, context.RequestAborted);
-            return credential is not null ? TypedResults.Ok(credential.ToView()) : TypedResults.BadRequest();
-        })
-        .WithName("SetCredentialPassword")
-        .RequireAuthorization()
-        .WithSummary("Set password credential")
-        .WithDescription("Returns credential entry")
-        .ProducesProblem(StatusCodes.Status403Forbidden)
-        .ProducesProblem(StatusCodes.Status422UnprocessableEntity, ApplicationProblemJson)
-        .ProducesProblem(StatusCodes.Status400BadRequest)
-        ;
-
-        api.MapDelete("/user/{username}/{credentialId}", async Task<Results<Ok, ForbidHttpResult, BadRequest>> (
-            string username, int credentialId,
+        api.MapDelete("/user/{username}/{credentialSubject}/lock", async Task<Results<Ok<CredentialResponse>, ForbidHttpResult, BadRequest>> (
+            string username, string credentialSubject, [FromQuery()] string? credentialType,
             UserRepository userRepository, CredentialRepository credentialRepository, HttpContext context) =>
         {
             var (principal, _) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, username, PrivilegeMask.WriteAcl, context.RequestAborted);
@@ -156,71 +134,197 @@ public static partial class AdministrationApi
             {
                 return TypedResults.Forbid();
             }
-            await credentialRepository.Delete(principal, credentialId, context.RequestAborted);
-            return TypedResults.Ok();
+            var credentialRef = new CredentialRef(principal, credentialSubject, credentialType);
+            var credential = await credentialRepository.UpdateLock(credentialRef, doLock: false, context.RequestAborted);
+            return credential is not null ? TypedResults.Ok(credential.ToView()) : TypedResults.BadRequest();
+        })
+        .WithName("UnlockCredential")
+        .RequireAuthorization()
+        .WithSummary("Unlock credential")
+        .WithDescription("Returns credential entry")
+        .ProducesProblem(StatusCodes.Status403Forbidden)
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        ;
+
+        api.MapPatch("/user/{username}/{credentialSubject}/reset", async Task<Results<Ok<CredentialCreateResponse>, ForbidHttpResult, UnprocessableEntity<ProblemDetails>>> (
+            string username, string credentialSubject, [FromQuery()] string? credentialType, [FromBody] UserCredentialResetRequest? request,
+            UserManagementRepository userManagementRepository, UserRepository userRepository,
+            CredentialRepository credentialRepository, IOptions<UserConstraintOptions> userConstraints, HttpContext context) =>
+        {
+            var (principal, _) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, username, PrivilegeMask.WriteAcl, context.RequestAborted);
+            if (principal is null)
+            {
+                return TypedResults.Forbid();
+            }
+            if (request is null)
+            {
+                request = new UserCredentialResetRequest { Password = PasswordGenerator.RandomPassword(), };
+            }
+            else if (string.IsNullOrWhiteSpace(request.Password))
+            {
+                return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Missing password" });
+            }
+            var credentialRef = new CredentialRef(principal, credentialSubject, credentialType);
+            var passwordHash = BetterPasswordHasher.HashPassword(request.Password);
+            var credential = await credentialRepository.Reset(credentialRef, passwordHash, context.RequestAborted);
+            if (credential is null)
+            {
+                return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Credential not identified uniquely" });
+            }
+            var response = credential.ToCreateResponse(request.Password);
+            switch (credential.CredentialType.Label)
+            {
+                case CredentialTypes.AccessKeyCode:
+                    {
+                        if (string.IsNullOrEmpty(userConstraints.Value.ApplicationKeySecret))
+                        {
+                            return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Server setup doesn't allow application keys" });
+                        }
+                        response.Secret = await ApplicationKeyRepository.CreateTokenAsync(userConstraints.Value, credential.Accesskey, request.Password, context.RequestAborted);
+                    }
+                    break;
+                default:
+                    break;
+            }
+            return TypedResults.Ok(response);
+        })
+        .WithName("SetCredentialPassword")
+        .RequireAuthorization()
+        .WithSummary("Change password of credential. If no password supplied one will be generated.")
+        .WithDescription("Returns credential entry with secret")
+        .ProducesProblem(StatusCodes.Status403Forbidden)
+        .ProducesProblem(StatusCodes.Status422UnprocessableEntity, ApplicationProblemJson)
+        ;
+
+        api.MapDelete("/user/{username}/{credentialSubject}", async Task<Results<NoContent, ForbidHttpResult, UnprocessableEntity<ProblemDetails>>> (
+            string username, string credentialSubject, [FromQuery()] string? credentialType,
+            UserRepository userRepository, CredentialRepository credentialRepository, HttpContext context) =>
+        {
+            var (principal, _) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, username, PrivilegeMask.WriteAcl, context.RequestAborted);
+            if (principal is null)
+            {
+                return TypedResults.Forbid();
+            }
+            var credentialRef = new CredentialRef(principal, credentialSubject, credentialType);
+            var result = await credentialRepository.Delete(credentialRef, context.RequestAborted);
+            if (!result)
+            {
+                return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Credential not identified uniquely" });
+            }
+            return TypedResults.NoContent();
         })
         .WithName("DeleteCredential")
         .RequireAuthorization()
         .WithSummary("Delete credential")
         .ProducesProblem(StatusCodes.Status403Forbidden)
-        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .ProducesProblem(StatusCodes.Status422UnprocessableEntity, ApplicationProblemJson)
         ;
 
-        api.MapPost("/user/{username}", async Task<Results<Created, ForbidHttpResult, UnprocessableEntity, BadRequest>> (
-            string username, [FromBody] UserCredentialRequest request,
+        api.MapPost("/user/{username}", async Task<Results<Created<CredentialCreateResponse>, ForbidHttpResult, UnprocessableEntity<ProblemDetails>, Conflict<ProblemDetails>, BadRequest<ProblemDetails>>> (
+            string username, [FromBody] UserCredentialCreateRequest request,
             UserManagementRepository userManagementRepository, UserRepository userRepository,
-            CredentialRepository credentialRepository, StaticDataRepository staticData, HttpContext context) =>
+            CredentialRepository credentialRepository, StaticDataRepository staticData, IOptions<UserConstraintOptions> userConstraints, HttpContext context) =>
         {
             var (principal, currentUserPrincipal) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, username, PrivilegeMask.WriteAcl, context.RequestAborted);
             if (principal is null)
             {
                 return TypedResults.Forbid();
             }
-            if (string.IsNullOrWhiteSpace(request.CredentialType))
+            var credentialTypeLabel = string.Empty;
+            switch (request.Template)
             {
-                return TypedResults.BadRequest();
+                case UserCredentialCreateTemplate.Email:
+                    credentialTypeLabel = CredentialTypes.PasswordCode;
+                    request.Username = principal.Email;
+                    break;
+
+                case UserCredentialCreateTemplate.Username:
+                    credentialTypeLabel = CredentialTypes.PasswordCode;
+                    request.Username = principal.Username;
+                    break;
+
+                case UserCredentialCreateTemplate.Generic:
+                    credentialTypeLabel = CredentialTypes.PasswordCode;
+                    if (string.IsNullOrWhiteSpace(request.Username))
+                    {
+                        return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Generic requires username" });
+                    }
+                    break;
+
+                case UserCredentialCreateTemplate.ApplicationKey:
+                    credentialTypeLabel = CredentialTypes.AccessKeyCode;
+                    if (string.IsNullOrWhiteSpace(request.Username))
+                    {
+                        request.Username = PasswordGenerator.RandomUriSegment();
+                    }
+                    if (!string.IsNullOrWhiteSpace(request.Password))
+                    {
+                        return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Application key no password allowed" });
+                    }
+                    if (string.IsNullOrWhiteSpace(request.Description))
+                    {
+                        return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Application key requires description" });
+                    }
+                    break;
+
+                case UserCredentialCreateTemplate.JwtBearer:
+                    return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Unsupported credential type" });
+
+                default:
+                    return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Unknown credential create template" });
             }
-            var credentialType = staticData.UserAccessTypeList.Values.FirstOrDefault(c => string.Equals(c.Label, request.CredentialType, StringComparison.Ordinal));
+            var credentialType = staticData.UserAccessTypeList.Values.FirstOrDefault(c => string.Equals(c.Label, credentialTypeLabel, StringComparison.Ordinal));
             if (credentialType is null)
             {
-                return TypedResults.BadRequest();
+                return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Unknown credential type" });
             }
-            if (string.IsNullOrWhiteSpace(request.Username))
+            string? passwordHash = null;
+            if (!credentialTypeLabel.Equals(CredentialTypes.JwtBearerCode, StringComparison.Ordinal))
             {
-                switch (request.Template)
+                if (string.IsNullOrWhiteSpace(request.Password))
                 {
-                    case "EMAIL":
-                        request.Username = principal.Email;
-                        break;
-
-                    case "USERNAME":
-                        request.Username = principal.Username;
-                        break;
-
-                    default:
-                        return TypedResults.UnprocessableEntity();
+                    request.Password = PasswordGenerator.RandomPassword();
                 }
+                passwordHash = BetterPasswordHasher.HashPassword(request.Password);
             }
-            if (string.IsNullOrWhiteSpace(request.Password))
+            var credential = await credentialRepository.Create(principal, credentialType, request.Username!, passwordHash, request.Description, context.RequestAborted);
+            if (credential is null)
             {
-                request.Password = PasswordGenerator.RandomPassword();
-                Log.Warning("Empty password for credential {credentialType} autofilled", request.CredentialType);
+                return TypedResults.Conflict(new ProblemDetails() { Title = "Credential creation failed" });
             }
-            var password = BetterPasswordHasher.HashPassword(request.Password);
-            var response = await credentialRepository.Create(principal, credentialType, request.Username!, password, context.RequestAborted);
-            if (response is null)
+            var response = credential.ToCreateResponse(request.Password);
+            switch (request.Template)
             {
-                return TypedResults.BadRequest();
+                case UserCredentialCreateTemplate.ApplicationKey:
+                    {
+                        if (string.IsNullOrEmpty(userConstraints.Value.ApplicationKeySecret))
+                        {
+                            return TypedResults.UnprocessableEntity(new ProblemDetails() { Title = "Server setup doesn't allow application keys" });
+                        }
+                        response.Secret = await ApplicationKeyRepository.CreateTokenAsync(userConstraints.Value, request.Username, request.Password, context.RequestAborted);
+                    }
+                    break;
+
+                case UserCredentialCreateTemplate.JwtBearer:
+                    response.Secret = null;
+                    break;
+
+                default:
+                    break;
             }
-            return TypedResults.Created($"/api/user/{response.Usr?.Username ?? response.Accesskey}/{response.Id}");
+            // TODO: Build safe URI
+            return TypedResults.Created($"/api/user/{credential.Usr?.Username}/{credential.Accesskey}", response);
         })
         .WithName("CreateCredential")
         .RequireAuthorization()
-        .WithSummary("Create credential")
-        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .WithSummary("Create (additional) credential for an user account")
+        .ProducesProblem(StatusCodes.Status422UnprocessableEntity, ApplicationProblemJson)
+        .ProducesProblem(StatusCodes.Status409Conflict, ApplicationProblemJson)
+        .ProducesProblem(StatusCodes.Status400BadRequest, ApplicationProblemJson)
         ;
 
-        api.MapPatch("/autolink", async Task<Results<Ok, NoContent, NotFound, UnprocessableEntity<ProblemDetails>, BadRequest<ProblemDetails>>> (CredentialRepository credentialRepository, UserRepository userRepository, HttpContext context) =>
+        api.MapPatch("/autolink", async Task<Results<Ok, NoContent, NotFound, UnprocessableEntity<ProblemDetails>, BadRequest<ProblemDetails>>> (
+            CredentialRepository credentialRepository, UserRepository userRepository, HttpContext context) =>
         {
             var (_, currentUserPrincipal) = await TryGetAuthorizedPrincipal(userRepository, context.User.Identity, PrivilegeMask.All, context.RequestAborted);
             if (currentUserPrincipal is not null || context.User.Identity?.Name is null)
@@ -252,7 +356,9 @@ public static partial class AdministrationApi
         .ProducesProblem(StatusCodes.Status400BadRequest, ApplicationProblemJson)
         ;
 
-        api.MapPatch("/link/{sub}", async Task<Results<Ok, NoContent, NotFound, ForbidHttpResult, UnprocessableEntity<ProblemDetails>, BadRequest<ProblemDetails>>> (string sub, [FromBody, Required] UserCredentialRequest request, CredentialRepository credentialRepository, UserRepository userRepository, HttpContext context) =>
+        api.MapPatch("/link/{sub}", async Task<Results<Ok, NoContent, NotFound, ForbidHttpResult, UnprocessableEntity<ProblemDetails>, BadRequest<ProblemDetails>>> (
+            string sub, [FromBody, Required] UserCredentialLoginRequest request,
+            CredentialRepository credentialRepository, UserRepository userRepository, HttpContext context) =>
         {
             if (string.IsNullOrWhiteSpace(request.Password) || string.IsNullOrWhiteSpace(request.Username))
             {
@@ -344,24 +450,8 @@ public static partial class AdministrationApi
                 Locale = userDefaults.Value.Locale ?? UserDefaults.Locale,
                 IsActive = true,
             };
-            var credentialAuto = new UsrCredential
-            {
-                Usr = user,
-                CredentialTypeId = CredentialTypes.JwtBearer,
-                Accesskey = context.User.Identity.Name,
-                Secret = issuer,
-                Validity = new Interval(SystemClock.Instance.GetCurrentInstant(), Instant.MaxValue),
-            };
+            var credentialAuto = CredentialRepository.BuildJwtBearerCredential(user, context.User.Identity.Name, issuer);
             user.Credentials.Add(credentialAuto);
-            // var credentialPwd = new UsrCredential
-            // {
-            //     Usr = user,
-            //     CredentialTypeId = CredentialTypes.Password,
-            //     Accesskey = username,
-            //     Secret = BetterPasswordHasher.HashPassword(PasswordGenerator.RandomPassword()),
-            //     Validity = new Interval(SystemClock.Instance.GetCurrentInstant(), Instant.MaxValue),
-            // };
-            // user.Credentials.Add(credentialPwd);
             userManagementRepository.CreateDefaultCollections(user, principalType, request.Timezone ?? UserDefaults.TzId, request.Color, request.DisplayName, request.Description, []);
             try
             {

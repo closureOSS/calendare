@@ -91,6 +91,7 @@ public static class CalendarExtensions
         var target = resource.Object;
         target.OwnerId = resource.Owner.UserId;
         target.ActualUserId = resource.CurrentUser.UserId;
+        target.Segment = resource.Uri.TrailingSegment!;
         target.Uri = resource.Uri.Path!;
         target.CalendarItem ??= new();
         if (target.CollectionId == 0 && resource.Parent is not null)

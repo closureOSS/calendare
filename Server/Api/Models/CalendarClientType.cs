@@ -10,6 +10,8 @@ public enum CalendarClientType
     MacOSCalendar,
     EMClient,
     DAVx5,
+    MicrosoftWebDAV,
+    MacOSWebDAV,
 
     /// <summary>
     /// Any clients (just for filtering, not used in detection)
