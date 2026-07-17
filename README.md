@@ -11,7 +11,8 @@ The **Calendare Server** is built on open standards to ensure seamless compatibi
 - **Availability Management**: Includes "Free/Busy" support, helping you manage your schedule and share your availability with others.
 - **Efficient Synchronization**: High-performance syncing that only downloads changes since your last update, saving battery life and data.
 - **Real-Time Push Notifications**: Support for modern Web Push standards (including encrypted notifications and VAPID keys), so your devices stay updated instantly without constant polling.
-
+- **Basic WebDAV Storage:** Lightweight file hosting support, allowing you to store personal files backed by either local storage or an external S3-compatible provider (preferred).
+-
 For the full list of supported RFC's and other specification see the [implemented scope](./Doc/SCOPE.md).
 
 ## Designed for Collaboration & Scalability
