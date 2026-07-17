@@ -83,6 +83,11 @@ spec:
             - secretRef:
                 name: {{ .Values.calendare.existingAdminSecret | default (printf "%s-admin" $fullname) }}
               prefix: Calendare__Administrator__
+            {{- if and .Values.webdav .Values.webdav.s3 .Values.webdav.s3.existingSecret }}
+            - secretRef:
+                name: {{ .Values.webdav.s3.existingSecret }}
+              prefix: Calendare__WebDAV__S3__
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

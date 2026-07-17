@@ -167,6 +167,23 @@ jwtBearer: {}
   # authority: Url to the OIDC provider
   # audience: "calendare-ui"
 
+# -- WebDAV storage configuration
+webdav: {}
+  # enabled: false
+  # provider: "Filesystem" | "S3"
+  # filesystem:
+  #   -- filesystem provider requires a base path to permanent storage and volume/-mount definitions
+  #   basePath: "/webdav"
+  # s3:
+  #   bucket:
+  #   host:
+  #   region: "us-east-1"
+  #   pathstyle: true | false
+  #   accessKey:
+  #   secretKey:
+  #   -- -OR- use additionally pre-defined S3 storage secrets (e.g. with keys ACCESSKEY, SECRETKEY)
+  #   existingSecret: calendare-storage
+
 metric:
   port: 5001
 

@@ -30,10 +30,18 @@ data:
 {{- if .Values.jwtBearer.enabled }}
       "JwtBearer": {{- with .Values.jwtBearer -}}{{- toPrettyJson . | nindent 6 }}{{- end }},
 {{- end }}
+{{- if .Values.webdav.enabled }}
+      "WebDAV": {{- with .Values.webdav -}}{{- toPrettyJson . | nindent 6 }}{{- end }},
+{{- end }}
       "Calendare": {
 {{- $appsetting := .Values.calendare.features }}
 {{- if $appsetting }}
-        "Features": {{ $appsetting | toJson | indent 2 }}
+        "Features": {{ $appsetting | toJson }},
 {{- end }}
+{{- $userConstraints := .Values.calendare.userConstraints }}
+{{- if $userConstraints }}
+        "UserConstraints": {{ $userConstraints | toJson }},
+{{- end }}
+        "EOC": true
       }
     }
