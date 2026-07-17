@@ -567,7 +567,7 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20250425070016_CreateInitial') THEN
     INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
-    VALUES ('20250425070016_CreateInitial', '10.0.8');
+    VALUES ('20250425070016_CreateInitial', '10.0.10');
     END IF;
 END $EF$;
 COMMIT;
@@ -661,7 +661,7 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260622060127_BlobItem') THEN
     INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
-    VALUES ('20260622060127_BlobItem', '10.0.8');
+    VALUES ('20260622060127_BlobItem', '10.0.10');
     END IF;
 END $EF$;
 COMMIT;
