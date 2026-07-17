@@ -26,6 +26,8 @@ While this requires a more robust infrastructure — including a **PostgreSQL da
 
 - **Resource Management**: Native support for booking shared resources, such as meeting rooms and equipment.
 
+- **Web UI**: A portal for user account provisioning and self-management of calendar and contact resources, powered by this server's API. (separate project and installation)
+
 Optimized for modern DevOps workflows, the recommended deployment target is a **Kubernetes cluster**, ensuring high availability and professional management of your organization's data.
 
 ## Quickstart
@@ -36,9 +38,7 @@ To start see the [installation guide](./Doc/INSTALL.md).
 
 This software is currently in active development and in a limited internal production (beta) phase. While enlarging the project scope is planned for a later date, we welcome contributions to expand supported calendar clients, add new installation methods, and improve documentation.
 
-Two companion sub-projects are scheduled for open-source release shortly:
-
-- **Web UI**: A portal for user account provisioning and self-management of calendar and contact resources, powered by this server's API.
+One sub-projects for development purposes is scheduled for open-source release shortly:
 
 - **Integration Test Suite**: A comprehensive testing application currently covering over 900 functional use cases.
 
