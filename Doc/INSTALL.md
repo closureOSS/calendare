@@ -1,6 +1,10 @@
 # Install Calendare Server <!-- omit in toc -->
 
 - [Infrastructure requirements](#infrastructure-requirements)
+  - [Database](#database)
+  - [File storage](#file-storage)
+    - [S3 Storage Provider](#s3-storage-provider)
+    - [Local storage](#local-storage)
   - [DNS](#dns)
     - [Domain and subdomain](#domain-and-subdomain)
     - [Base Path Configuration](#base-path-configuration)
@@ -18,7 +22,33 @@
 
 The Calendare Server requires specific infrastructure to operate.
 
+## Database
+
 It uses a **PostgreSQL database** for data persistence and relies on an **OIDC provider** for user authentication. These components must be managed independently and are not covered in the following server installation guide.
+
+The database contains user data and administrative data. The only exception relates to the WebDAV feature (file storage). The file contents are stored externally.
+
+## File storage
+
+File storage is only needed if the WebDAV feature is enabled (**not** for calendar or contact information). The default installation doesn't enable WebDAV.
+
+### S3 Storage Provider
+
+The **preferred** option is to use an external S3 provider (`provider: S3`). A dedicated bucket needs to be configured.
+
+> [!WARNING]
+> The Calendare Server requires a dedicated bucket. It will regulary **delete** all content which is not managed by the server.
+
+### Local storage
+
+The local storage (`provider: Filesystem`) requires a base path to the local file system. Using Kubernetes this means that you need to define `PersistentVolumes` and `VolumeMounts`.
+
+While local storage is supported, it is primarily intended for development and testing. For production deployments, using an **S3-compatible provider** is highly recommended.
+
+> [!NOTE]
+> Furthermore, if you run a multi-instance (highly available) setup, you must ensure your storage backend is distributed (supporting `ReadWriteMany` access).
+>
+> In contrast, the **S3 provider option** is much easier to configure, scales seamlessly across multiple instances out-of-the-box, and eliminates the need to manage complex storage volumes in your cluster.
 
 ## DNS
 
@@ -99,6 +129,7 @@ Similarly, ensure that your environment does not filter or block the specific MI
 #### Request Body Size Limits
 
 Ensure that your ingress controller, proxy, or web server is configured to allow larger HTTP request bodies. Providing a universal "one-size-fits-all" limit is difficult, as CalDAV and CardDAV payloads can be quite large.
+The server has for CalDAV and CardDAV requests an internal limit of 30'000'000 bytes (~ 28.6 MB). Currently this limit is fixed and not configurable.
 
 Individual calendar events with long descriptions or attachments or contact cards containing high-resolution profile photos (vCards) can significantly increase the request size. We recommend starting with a limit of at least 10MB to 20MB and adjusting based on your specific use case.
 
@@ -109,6 +140,8 @@ ingress:
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
 ```
+
+If you enable WebDAV take care to revisit the body size limit. The server removes for WebDAV requests any internal body size limit.
 
 ## Others / Manual
 
