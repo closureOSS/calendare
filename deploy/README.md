@@ -2,7 +2,7 @@
 
 
 
-![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.6.0](https://img.shields.io/badge/AppVersion-0.6.0-informational?style=flat-square) 
+![Version: 0.8.0](https://img.shields.io/badge/Version-0.8.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.8.0](https://img.shields.io/badge/AppVersion-0.8.0-informational?style=flat-square) 
 
 [Calendare - A Caldav/Carddav server](https://github.com/closureOSS/calendare)
 
@@ -120,6 +120,8 @@ A list of feature toogles for calendar clients can optionally be supplied. A cal
 | MacOSCalendar | Apple MacOS calendar client                         |
 | EMClient      | eM Email Client                                     |
 | DAVx5         | Android DAVx5 CalDAV / CardDAV / WebDAV for Android |
+| MicrosoftWebDAV | Microsoft Windows 11 WebDAV client                |
+| MacOSWebDAV     | MacOS WebDAV client                               |
 | NotDetected   | Unknown client                                      |
 
 each client can have a list of enabled features and a second list of disabled features. These features are
@@ -180,7 +182,7 @@ If a client is not configured in `calendare.features` the in-built settings are 
 | httpRoute.parentRefs | list | {} | Which Gateways this Route is attached to. |
 | httpRoute.rules | list | {} | List of rules and filters applied. |
 | image.pullPolicy | string | `"IfNotPresent"` | This sets the pull policy for images. |
-| image.repository | string | `"ghcr.io/closureoss/calendare/calendare.server"` |  |
+| image.repository | string | `"ghcr.io/closureoss/calendare/calendare-server"` |  |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |
@@ -216,6 +218,7 @@ If a client is not configured in `calendare.features` the in-built settings are 
 | tolerations | list | `[]` |  |
 | volumeMounts | list | `[]` |  |
 | volumes | list | `[]` |  |
+| webdav | object | `{}` | WebDAV storage configuration |
 | webpush | object | `{}` | WebPush configuration |
 
 
